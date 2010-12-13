@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Copyright (c) 2010 Jérémie DECOCK (http://www.jdhp.org)
+
 import os
 import sys
 import getopt
