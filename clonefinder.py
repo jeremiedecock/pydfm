@@ -103,37 +103,65 @@ def main():
 
     # Remove redundant entries ################################################
 
+#    for dir_hash, dir_paths in reverse_dir_dict.items():
+#        if len(dir_paths) > 1:
+#            for file_hash, file_paths in reverse_file_dict.items():
+#                if len(file_paths) == len(dir_paths):
+#                    file_paths.sort()
+#                    dir_paths.sort()
+#
+#                    redundant_entry = True
+#                    for dir_path, file_path in zip(dir_paths, file_paths):
+#                        if not file_path.startswith(dir_path):
+#                            redundant_entry = False 
+#
+#                    if redundant_entry:
+#                        del reverse_file_dict[file_hash]
+#            for subdir_hash, subdir_paths in reverse_dir_dict.items():
+#                if len(subdir_paths) == len(dir_paths):
+#                    subdir_paths.sort()
+#                    dir_paths.sort()
+#
+#                    redundant_entry = True
+#                    for dir_path, subdir_path in zip(dir_paths, subdir_paths):
+#                        if not subdir_path.startswith(dir_path):
+#                            redundant_entry = False 
+#
+#                    if redundant_entry:
+#                        del reverse_dir_dict[subdir_hash]
 
     # Display duplicated files and directories ################################
     
-#    for key, value in dir_dict.items():
-#        print "%s %s" % (value, key)
+##
+#    for path, hash in dir_dict.items():
+#        print "%s %s" % (hash, path)
 #
-#    for key, value in file_dict.items():
-#        print "%s %s" % (value, key)
-#
-#    print
-#
-#    for key, value in reverse_dir_dict.items():
-#        print "%s %s" % (key, value)
-#
-#    for key, value in reverse_file_dict.items():
-#        print "%s %s" % (key, value)
+#    for path, hash in file_dict.items():
+#        print "%s %s" % (hash, path)
 #
 #    print
+#
+#    for hash, paths in reverse_dir_dict.items():
+#        print "%s %s" % (hash, paths)
+#
+#    for hash, paths in reverse_file_dict.items():
+#        print "%s %s" % (hash, paths)
+#
+#    print
+##
 
-    for key, values in reverse_dir_dict.items():
-        if len(values) > 1:
-            for value in values:
-                mtime = time.ctime(os.path.getmtime(value))
-                print "[%s]   %s" % (mtime, value)
+    for hash, paths in reverse_dir_dict.items():
+        if len(paths) > 1:
+            for path in paths:
+                mtime = time.ctime(os.path.getmtime(path))
+                print "[%s]   %s" % (mtime, path)
             print
 
-    for key, values in reverse_file_dict.items():
-        if len(values) > 1:
-            for value in values:
-                mtime = time.ctime(os.path.getmtime(value))
-                print "[%s]   %s" % (mtime, value)
+    for hash, paths in reverse_file_dict.items():
+        if len(paths) > 1:
+            for path in paths:
+                mtime = time.ctime(os.path.getmtime(path))
+                print "[%s]   %s" % (mtime, path)
             print
 
 
