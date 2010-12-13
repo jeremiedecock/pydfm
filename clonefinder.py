@@ -18,7 +18,7 @@ CHUNK_SIZE = 2**12
 def usage():
     """Print help message"""
 
-    print '''Usage : ./clonefinder [-q] [-h] DIRECTORY
+    print '''Usage : ./clonefinder [-h] DIRECTORY [DIRECTORY, ...]
     
     Find identical files in PATH.
 
@@ -51,14 +51,15 @@ def main():
             assert False, "unhandled option"
 
     try:
-        path = args[0]
+        root_paths = args
     except IndexError:
         usage()
         sys.exit(1)
 
-    if not os.path.isdir(path):
-        usage()
-        sys.exit(2)
+    for path in root_paths:
+        if not os.path.isdir(path):
+            usage()
+            sys.exit(2)
 
     # Compute hashs ###########################################################
 
@@ -66,21 +67,22 @@ def main():
     file_dict = {}
     dir_dict = {}
 
-    for root, dirs, files in os.walk(path, topdown=False):
-        root_digest = hashlib.md5()
+    for path in root_paths:
+        for root, dirs, files in os.walk(path, topdown=False):
+            root_digest = hashlib.md5()
 
-        for name in files:
-            file_path = os.path.join(root, name)
-            file_digest = digest(file_path)
-            file_dict[file_path] = file_digest
-            
-            root_digest.update(file_digest)
+            for name in files:
+                file_path = os.path.join(root, name)
+                file_digest = digest(file_path)
+                file_dict[file_path] = file_digest
+                
+                root_digest.update(file_digest)
 
-        for name in dirs:
-            dir_path = os.path.join(root, name)
-            root_digest.update(dir_dict[dir_path])
+            for name in dirs:
+                dir_path = os.path.join(root, name)
+                root_digest.update(dir_dict[dir_path])
 
-        dir_dict[root] = root_digest.hexdigest()
+            dir_dict[root] = root_digest.hexdigest()
 
     # Build reverse dictionnary ###############################################
 
