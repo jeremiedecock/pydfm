@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2010 Jérémie DECOCK (http://www.jdhp.org)
+# Copyright (c) 2010,2011 Jérémie DECOCK (http://www.jdhp.org)
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -32,21 +32,29 @@ import time
 import getopt
 import hashlib
 
+PROGRAM_NAME = "clonefinder"
+PROGRAM_VERSION = "1.0"
+
 CHUNK_SIZE = 2**12
 
 def usage():
     """Print help message"""
 
-    print '''Usage : ./clonefinder [-h] DIRECTORY_1 [DIRECTORY_2, ...]
-    
-    Find duplicated files and directories in DIRECTORY_1, DIRECTORY_2, ...
+    print '''Find duplicated files and directories in DIRECTORY_1, DIRECTORY_2, ...
 
-    -h, --help
-        display this help and exit
-    '''
+Usage: clonefinder DIRECTORY_1 [DIRECTORY_2, ...]
+       clonefinder [OPTION]
+
+Options:
+    -h, --help         display this help and exit
+    -v, --version      output version information and exit
+
+Report bugs to <gremy@tuxfamily.org>.
+'''
 
 def main():
     """Main function"""
+
     # Utiliser argparse à partir de python 2.7 (optparse is deprecated)
     
     # Parse options ###########################################################
@@ -54,8 +62,8 @@ def main():
 
     try:
         opts, args = getopt.getopt(sys.argv[1:],
-                     'h',
-                     ["help"])
+                     'hv',
+                     ["help", "version"])
     except getopt.GetoptError, err:
         # will print something like "option -x not recognized"
         print str(err) 
@@ -65,6 +73,13 @@ def main():
     for o, a in opts:
         if o in ("-h", "--help"):
             usage()
+            sys.exit(0)
+        elif o in ("-v", "--version"):
+            print PROGRAM_NAME, PROGRAM_VERSION
+            print
+            print 'Copyright (c) 2010,2011 Jeremie DECOCK (http://www.jdhp.org)'
+            print 'This is free software; see the source for copying conditions.',
+            print 'There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.'
             sys.exit(0)
         else:
             assert False, "unhandled option"
@@ -185,6 +200,8 @@ def main():
 
 
 def digest(file_path):
+    """Compute hash"""
+
     hash = hashlib.md5()
 
     if os.path.isfile(file_path):

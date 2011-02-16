@@ -1,0 +1,13 @@
+Source: clonefinder
+Section: misc
+Priority: optional
+Maintainer: Jeremie Decock <gremy@tuxfamily.org>
+Build-Depends: debhelper (>= 7)
+Standards-Version: 3.7.3
+Homepage: http://www.jdhp.org
+
+Package: clonefinder
+Architecture: all
+Depends: python (>= 2.5)
+Description: Find duplicated files and directories
+ Find duplicated files and directories.
