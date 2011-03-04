@@ -49,7 +49,7 @@ Options:
     -h, --help         display this help and exit
     -v, --version      output version information and exit
 
-Report bugs to <gremy@tuxfamily.org>.
+Report bugs to <jd.jdhp@gmail.com>.
 '''
 
 def main():
