@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2010,2011 Jérémie DECOCK (http://www.jdhp.org)
+# Copyright (c) 2010,2011,2012 Jérémie DECOCK (http://www.jdhp.org)
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -29,70 +29,32 @@
 import os
 import sys
 import time
-import getopt
+import argparse
 import hashlib
 
 PROGRAM_NAME = "clonefinder"
 PROGRAM_VERSION = "1.0"
+VERSION = "1.1"
+COPYING = '''Copyright (c) 2010,2011,2012 Jeremie DECOCK (http://www.jdhp.org)
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.'''
 
 CHUNK_SIZE = 2**12
-
-def usage():
-    """Print help message"""
-
-    print '''Find duplicated files and directories in DIRECTORY_1, DIRECTORY_2, ...
-
-Usage: clonefinder DIRECTORY_1 [DIRECTORY_2, ...]
-       clonefinder [OPTION]
-
-Options:
-    -h, --help         display this help and exit
-    -v, --version      output version information and exit
-
-Report bugs to <jd.jdhp@gmail.com>.
-'''
 
 def main():
     """Main function"""
 
-    # Utiliser argparse à partir de python 2.7 (optparse is deprecated)
-    
     # Parse options ###########################################################
-    path = None
 
-    try:
-        opts, args = getopt.getopt(sys.argv[1:],
-                     'hv',
-                     ["help", "version"])
-    except getopt.GetoptError, err:
-        # will print something like "option -x not recognized"
-        print str(err) 
-        usage()
-        sys.exit(1)
- 
-    for o, a in opts:
-        if o in ("-h", "--help"):
-            usage()
-            sys.exit(0)
-        elif o in ("-v", "--version"):
-            print PROGRAM_NAME, PROGRAM_VERSION
-            print
-            print 'Copyright (c) 2010,2011 Jeremie DECOCK (http://www.jdhp.org)'
-            print 'This is free software; see the source for copying conditions.',
-            print 'There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.'
-            sys.exit(0)
-        else:
-            assert False, "unhandled option"
+    parser = argparse.ArgumentParser(description='Find duplicated files and directories.')
+    parser.add_argument('root_paths', nargs='+', metavar='DIRECTORY', help='file to read')
+    parser.add_argument("-v", "--version", action="version", version="%(prog)s " + VERSION)
+    args = parser.parse_args()
 
-    try:
-        root_paths = args
-    except IndexError:
-        usage()
-        sys.exit(1)
-
-    for path in root_paths:
+    for path in args.root_paths:
         if not os.path.isdir(path):
-            usage()
+            print "ERROR: {0} is not a directory.".format(path)
+            print parser.format_usage(),
             sys.exit(2)
 
     # Compute hashs ###########################################################
@@ -101,7 +63,7 @@ def main():
     file_dict = {}
     dir_dict = {}
 
-    for path in root_paths:
+    for path in args.root_paths:
         for root, dirs, files in os.walk(path, topdown=False):
             root_digest = hashlib.md5()
 
