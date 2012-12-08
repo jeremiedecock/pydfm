@@ -32,9 +32,7 @@ import time
 import argparse
 import hashlib
 
-PROGRAM_NAME = "clonefinder"
-PROGRAM_VERSION = "1.0"
-VERSION = "1.1"
+VERSION = "2.0"
 COPYING = '''Copyright (c) 2010,2011,2012 Jeremie DECOCK (http://www.jdhp.org)
 This is free software; see the source for copying conditions.
 There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.'''
@@ -44,10 +42,10 @@ CHUNK_SIZE = 2**12
 def main():
     """Main function"""
 
-    # Parse options ###########################################################
+    # PARSE OPTIONS ###########################################################
 
     parser = argparse.ArgumentParser(description='Find duplicated files and directories.')
-    parser.add_argument('root_paths', nargs='+', metavar='DIRECTORY', help='file to read')
+    parser.add_argument('root_paths', nargs='+', metavar='DIRECTORY', help='root directory')
     parser.add_argument("-v", "--version", action="version", version="%(prog)s " + VERSION)
     args = parser.parse_args()
 
@@ -57,19 +55,27 @@ def main():
             print parser.format_usage(),
             sys.exit(2)
 
-    # Compute hashs ###########################################################
+    # COMPUTE HASHS ###########################################################
 
     # dict = {path: hash, ...}
     file_dict = {}
     dir_dict = {}
 
+    # For each root path specified in command line argmuents
     for path in args.root_paths:
+
+        # root =  a string, the path to the directory.
+        # dirs =  a list of the names (strings) of the subdirectories in
+        #         dirpath (excluding '.' and '..').
+        # files = a list of the names (strings) of the non-directory files
+        #         in dirpath.
         for root, dirs, files in os.walk(path, topdown=False):
+
             root_digest = hashlib.md5()
 
             for name in files:
                 file_path = os.path.join(root, name)
-                file_digest = digest(file_path)
+                file_digest = md5sum(file_path)
                 file_dict[file_path] = file_digest
                 
                 root_digest.update(file_digest)
@@ -80,7 +86,7 @@ def main():
 
             dir_dict[root] = root_digest.hexdigest()
 
-    # Build reverse dictionnary ###############################################
+    # BUILD REVERSE DICTIONNARY ###############################################
 
     # reverse_dict = {hash: [path1, path2, ...], ...}
     reverse_file_dict = {}
@@ -97,7 +103,7 @@ def main():
             reverse_dir_dict[hash] = []
         reverse_dir_dict[hash].append(path)
 
-    # Remove redundant entries ################################################
+    # REMOVE REDUNDANT ENTRIES ################################################
 
     for dir_hash, dir_paths in reverse_dir_dict.items():
         if len(dir_paths) > 1:
@@ -126,7 +132,7 @@ def main():
                     if redundant_entry:
                         del reverse_dir_dict[subdir_hash]
 
-    # Display duplicated files and directories ################################
+    # DISPLAY DUPLICATED FILES AND DIRECTORIES ################################
     
 ##
 #    for path, hash in dir_dict.items():
@@ -160,8 +166,9 @@ def main():
                 print "[%s]   %s" % (mtime, path)
             print
 
+# FILE UTILITIES ##############################################################
 
-def digest(file_path):
+def md5sum(file_path):
     """Compute hash"""
 
     hash = hashlib.md5()
@@ -176,7 +183,7 @@ def digest(file_path):
         finally:
             file_descriptor.close()
 
-    return hash.hexdigest()        # text
+    return hash.hexdigest()        # str
 
 if __name__ == '__main__':
     main()
