@@ -45,8 +45,12 @@ def main():
     # PARSE OPTIONS ###########################################################
 
     parser = argparse.ArgumentParser(description='Find duplicated files and directories.')
-    parser.add_argument('root_paths', nargs='+', metavar='DIRECTORY', help='root directory')
-    parser.add_argument("-v", "--version", action="version", version="%(prog)s " + VERSION)
+
+    parser.add_argument("--db", "-d", help="database path", metavar="STRING")
+    parser.add_argument("--nodb", "-n", help="don't use database file", action="store_true")
+    parser.add_argument("--version", "-v", action="version", version="%(prog)s " + VERSION)
+    parser.add_argument("root_paths", nargs="+", metavar="DIRECTORY", help="root directory")
+
     args = parser.parse_args()
 
     for path in args.root_paths:
@@ -54,6 +58,21 @@ def main():
             print "ERROR: {0} is not a directory.".format(path)
             print parser.format_usage(),
             sys.exit(2)
+
+    db_path = None
+    if args.nodb:
+        pass
+    else:
+        if args.db is None:
+            db_path = get_default_db_path()
+        else:
+            db_path = args.db
+            if not os.path.isfile(db_path):
+                print "ERROR: {0} is not a file.".format(db_path)
+                print parser.format_usage(),
+                sys.exit(2)
+
+    print db_path
 
     # COMPUTE HASHS ###########################################################
 
@@ -184,6 +203,18 @@ def md5sum(file_path):
             file_descriptor.close()
 
     return hash.hexdigest()        # str
+
+
+def get_default_db_path():
+    """Return the default database path."""
+
+    # A cross-platform way to get the current user's home directory
+    home_dir = os.path.expanduser("~")
+    default_db_filename = ".clonefinder"
+    db_path = os.path.join(home_dir, default_db_filename)
+
+    return db_path
+
 
 if __name__ == '__main__':
     main()
