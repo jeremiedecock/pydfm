@@ -206,7 +206,8 @@ def get_default_db_path():
     return db_path
 
 
-    # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
+# BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
+
 def walk(root_path, db, follow_links=False):
     """Walk the tree from "root_path" and build the {path:md5,...}
     dictionary"""
@@ -233,7 +234,6 @@ def walk(root_path, db, follow_links=False):
 
             if db != None:
                 if file_path in db:
-                    #db_file_mtime, db_file_size, db_file_md5 = db[file_path]
                     db_file_mtime, db_file_size, db_file_md5 = db[file_path].split()
                     if file_mtime == db_file_mtime and file_size == db_file_size:
                         # The file is known and hasn't changed since the last walk => don't compute the MD5, use the one in db.
@@ -242,7 +242,6 @@ def walk(root_path, db, follow_links=False):
             if file_md5 is None:
                 file_md5 = md5sum(file_path)
                 if db != None:
-                    #db[file_path] = (file_mtime, file_size, file_md5)
                     db[file_path] = "{0} {1} {2}".format(file_mtime, file_size, file_md5)
 
             local_file_dict[file_path] = file_md5
@@ -264,7 +263,7 @@ def walk(root_path, db, follow_links=False):
         # CURRENT DIRECTORY
         local_dir_dict[current_dir_path] = current_dir_md5.hexdigest()
 
-        return local_file_dict, local_dir_dict
+    return local_file_dict, local_dir_dict
 
 
 if __name__ == '__main__':
