@@ -32,6 +32,8 @@ import time
 import argparse
 import hashlib
 
+import dumbdbm
+
 VERSION = "2.0"
 COPYING = '''Copyright (c) 2010,2011,2012 Jeremie DECOCK (http://www.jdhp.org)
 This is free software; see the source for copying conditions.
@@ -48,6 +50,7 @@ def main():
 
     parser.add_argument("--db", "-d", help="database path", metavar="STRING")
     parser.add_argument("--nodb", "-n", help="don't use database file", action="store_true")
+    parser.add_argument("--followlinks", "-l", help="follow links", action="store_true")
     parser.add_argument("--version", "-v", action="version", version="%(prog)s " + VERSION)
     parser.add_argument("root_paths", nargs="+", metavar="DIRECTORY", help="root directory")
 
@@ -70,40 +73,27 @@ def main():
             if not os.path.isfile(db_path):
                 print "ERROR: {0} is not a file.".format(db_path)
                 print parser.format_usage(),
-                sys.exit(2)
+                sys.exit(3)
 
     print db_path
 
-    # COMPUTE HASHS ###########################################################
+    # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
 
-    # dict = {path: hash, ...}
-    file_dict = {}
-    dir_dict = {}
+    file_dict = {}   # dict = {path: md5, ...}
+    dir_dict = {}    # dict = {path: md5, ...}
+
+    db = None
+    if db_path is not None:
+        db = dumbdbm.open(db_path, 'c')
 
     # For each root path specified in command line argmuents
     for path in args.root_paths:
+        local_file_dict, local_dir_dict = walk(path, db, args.followlinks)
+        file_dict.update(local_file_dict)
+        dir_dict.update(local_dir_dict)
 
-        # root =  a string, the path to the directory.
-        # dirs =  a list of the names (strings) of the subdirectories in
-        #         dirpath (excluding '.' and '..').
-        # files = a list of the names (strings) of the non-directory files
-        #         in dirpath.
-        for root, dirs, files in os.walk(path, topdown=False):
-
-            root_digest = hashlib.md5()
-
-            for name in files:
-                file_path = os.path.join(root, name)
-                file_digest = md5sum(file_path)
-                file_dict[file_path] = file_digest
-                
-                root_digest.update(file_digest)
-
-            for name in dirs:
-                dir_path = os.path.join(root, name)
-                root_digest.update(dir_dict[dir_path])
-
-            dir_dict[root] = root_digest.hexdigest()
+    if db_path is not None:
+        db.close()
 
     # BUILD REVERSE DICTIONNARY ###############################################
 
@@ -214,6 +204,67 @@ def get_default_db_path():
     db_path = os.path.join(home_dir, default_db_filename)
 
     return db_path
+
+
+    # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
+def walk(root_path, db, follow_links=False):
+    """Walk the tree from "root_path" and build the {path:md5,...}
+    dictionary"""
+
+    local_file_dict = {}   # dict = {path: md5, ...}
+    local_dir_dict = {}    # dict = {path: md5, ...}
+    
+    # current_dir_path = a string, the path to the directory.
+    # dir_names        = a list of the names (strings) of the subdirectories in
+    #                    current_dir_path (excluding '.' and '..').
+    # file_names       = a list of the names (strings) of the non-directory files
+    #                    in current_dir_path.
+    for current_dir_path, dir_names, file_names in os.walk(root_path, topdown=False, followlinks=follow_links):
+
+        current_dir_md5 = hashlib.md5()
+
+        # CHILD FILES
+        for file_name in file_names:
+            file_path = os.path.join(current_dir_path, file_name)
+            
+            file_mtime = os.path.getmtime(file_path)
+            file_size = os.path.getsize(file_path)
+            file_md5 = None
+
+            if db != None:
+                if file_path in db:
+                    #db_file_mtime, db_file_size, db_file_md5 = db[file_path]
+                    db_file_mtime, db_file_size, db_file_md5 = db[file_path].split()
+                    if file_mtime == db_file_mtime and file_size == db_file_size:
+                        # The file is known and hasn't changed since the last walk => don't compute the MD5, use the one in db.
+                        file_md5 = db_file_md5
+
+            if file_md5 is None:
+                file_md5 = md5sum(file_path)
+                if db != None:
+                    #db[file_path] = (file_mtime, file_size, file_md5)
+                    db[file_path] = "{0} {1} {2}".format(file_mtime, file_size, file_md5)
+
+            local_file_dict[file_path] = file_md5
+
+            current_dir_md5.update(file_md5)
+
+        # CHILD DIRECTORIES
+        for dir_name in dir_names:
+            dir_path = os.path.join(current_dir_path, dir_name)
+
+            try:
+                dir_md5 = local_dir_dict[dir_path]
+                current_dir_md5.update(dir_md5)
+            except KeyError:
+                # "local_dir_dict[dir_path]" should exists as we are doing a bottom-up tree walk
+                print 'Internal error. Check whether or not "topdown" argument is set to "False" in os.walk function call.'
+                sys.exit(4)
+
+        # CURRENT DIRECTORY
+        local_dir_dict[current_dir_path] = current_dir_md5.hexdigest()
+
+        return local_file_dict, local_dir_dict
 
 
 if __name__ == '__main__':
