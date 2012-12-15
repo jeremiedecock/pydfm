@@ -46,22 +46,26 @@ def main():
 
     # PARSE OPTIONS ###########################################################
 
+    class RootPathsAction(argparse.Action):
+        """Argparse's action class for 'root_paths' arguments."""
+        def __call__(self, parser, args, values, option = None):
+            if not args.printdb and len(values) == 0:
+                parser.error("too few arguments")
+            else:
+                args.root_paths = values
+
     parser = argparse.ArgumentParser(description='Find duplicated files and directories.')
 
     parser.add_argument("--db", "-d", help="database path", metavar="STRING")
     parser.add_argument("--nodb", "-n", help="don't use database file", action="store_true")
+    parser.add_argument("--printdb", "-p", help="print the database content and exit", action="store_true")
     parser.add_argument("--followlinks", "-l", help="follow links", action="store_true")
     parser.add_argument("--version", "-v", action="version", version="%(prog)s " + VERSION)
-    parser.add_argument("root_paths", nargs="+", metavar="DIRECTORY", help="root directory")
+    parser.add_argument("root_paths", nargs="*", metavar="DIRECTORY", help="root directory", action=RootPathsAction)
 
     args = parser.parse_args()
 
-    for path in args.root_paths:
-        if not os.path.isdir(path):
-            print "ERROR: {0} is not a directory.".format(path)
-            print parser.format_usage(),
-            sys.exit(2)
-
+    # SET DB_PATH
     db_path = None
     if args.nodb:
         pass
@@ -75,7 +79,19 @@ def main():
                 print parser.format_usage(),
                 sys.exit(3)
 
-    print db_path
+    # PRINT_DB AND EXIT IF REQUESTED
+    if args.printdb:
+        print_db(db_path)
+        sys.exit(0)
+
+    # CHECK ROOT_PATHS
+    for path in args.root_paths:
+        if not os.path.isdir(path):
+            print "ERROR: {0} is not a directory.".format(path)
+            print parser.format_usage(),
+            sys.exit(2)
+
+    print "Using", db_path, "database"
 
     # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
 
@@ -97,26 +113,15 @@ def main():
 
     # BUILD REVERSE DICTIONNARY ###############################################
 
-    # reverse_dict = {hash: [path1, path2, ...], ...}
-    reverse_file_dict = {}
-
-    for path, hash in file_dict.items():
-        if not reverse_file_dict.has_key(hash):
-            reverse_file_dict[hash] = []
-        reverse_file_dict[hash].append(path)
-
-    reverse_dir_dict = {}
-
-    for path, hash in dir_dict.items():
-        if not reverse_dir_dict.has_key(hash):
-            reverse_dir_dict[hash] = []
-        reverse_dir_dict[hash].append(path)
+    # reverse_dict = {md5: [path1, path2, ...], ...}
+    reversed_file_dict = reverse_dictionary(file_dict)
+    reversed_dir_dict = reverse_dictionary(dir_dict)
 
     # REMOVE REDUNDANT ENTRIES ################################################
 
-    for dir_hash, dir_paths in reverse_dir_dict.items():
+    for dir_hash, dir_paths in reversed_dir_dict.items():
         if len(dir_paths) > 1:
-            for file_hash, file_paths in reverse_file_dict.items():
+            for file_hash, file_paths in reversed_file_dict.items():
                 if len(file_paths) == len(dir_paths):
                     file_paths.sort()
                     dir_paths.sort()
@@ -127,8 +132,8 @@ def main():
                             redundant_entry = False 
 
                     if redundant_entry:
-                        del reverse_file_dict[file_hash]
-            for subdir_hash, subdir_paths in reverse_dir_dict.items():
+                        del reversed_file_dict[file_hash]
+            for subdir_hash, subdir_paths in reversed_dir_dict.items():
                 if (len(subdir_paths) == len(dir_paths)) and (subdir_paths is not dir_paths):
                     subdir_paths.sort()
                     dir_paths.sort()
@@ -139,60 +144,47 @@ def main():
                             redundant_entry = False 
 
                     if redundant_entry:
-                        del reverse_dir_dict[subdir_hash]
+                        del reversed_dir_dict[subdir_hash]
 
     # DISPLAY DUPLICATED FILES AND DIRECTORIES ################################
-    
-##
-#    for path, hash in dir_dict.items():
-#        print "%s %s" % (hash, path)
-#
-#    for path, hash in file_dict.items():
-#        print "%s %s" % (hash, path)
-#
-#    print
-#
-#    for hash, paths in reverse_dir_dict.items():
-#        print "%s %s" % (hash, paths)
-#
-#    for hash, paths in reverse_file_dict.items():
-#        print "%s %s" % (hash, paths)
-#
-#    print
-##
 
-    for hash, paths in reverse_dir_dict.items():
-        if len(paths) > 1:
-            for path in paths:
-                mtime = time.ctime(os.path.getmtime(path))
-                print "[%s]   %s" % (mtime, path)
-            print
+    if len(reversed_dir_dict) > 0:      # TODO: prune reversed_dir_dict before
+        print "* CLONED DIRECTORIES:"
+        for md5, paths in reversed_dir_dict.items():
+            if len(paths) > 1:
+                for path in paths:
+                    mtime = time.ctime(os.path.getmtime(path))  # TODO: don't fetch mtime again...
+                    print "[%s]   %s" % (mtime, path)
+                print
 
-    for hash, paths in reverse_file_dict.items():
-        if len(paths) > 1:
-            for path in paths:
-                mtime = time.ctime(os.path.getmtime(path))
-                print "[%s]   %s" % (mtime, path)
-            print
+    if len(reversed_file_dict) > 0:      # TODO: prune reversed_file_dict before
+        print "* CLONED FILES:"
+        for md5, paths in reversed_file_dict.items():
+            if len(paths) > 1:
+                for path in paths:
+                    mtime = time.ctime(os.path.getmtime(path))  # TODO: don't fetch mtime again...
+                    print "[%s]   %s" % (mtime, path)
+                print
+
 
 # FILE UTILITIES ##############################################################
 
 def md5sum(file_path):
-    """Compute hash"""
+    """Compute md5"""
 
-    hash = hashlib.md5()
+    md5_generator = hashlib.md5()
 
     if os.path.isfile(file_path):
         file_descriptor = open(file_path, 'rb')
         try:
             data = file_descriptor.read(CHUNK_SIZE)
             while data:
-                hash.update(data)
+                md5_generator.update(data)
                 data = file_descriptor.read(CHUNK_SIZE)
         finally:
             file_descriptor.close()
 
-    return hash.hexdigest()        # str
+    return md5_generator.hexdigest()        # str
 
 
 def get_default_db_path():
@@ -204,6 +196,44 @@ def get_default_db_path():
     db_path = os.path.join(home_dir, default_db_filename)
 
     return db_path
+
+
+def print_db(db_path):
+    """Print the database content."""
+
+    if db_path is not None:
+        db = dumbdbm.open(db_path, 'c')
+
+        if len(db) == 0:
+            print "Empty database."
+        else:
+            for file_path, file_attributes in db.items():
+                file_mtime, file_size, file_md5 = file_attributes.split()
+                print "{path} {mtime} {size} {md5}".format(path=file_path, mtime=file_mtime, size=file_size, md5=file_md5)
+            print len(db), "files are recorded in", db_path
+
+        db.close()
+    else:
+        print "No database."
+
+
+# TOOLS
+
+def reverse_dictionary(dictionary):
+    """Build a reversed dictionary of the one given in argument
+    (i.e. keys become values and values become keys).
+
+    reverse_dictionary({key1:val1, key2:val1, key3:val2})
+    returns {val1:[key1, key2], val2:[key3]}."""
+
+    reversed_dictionary = {}
+
+    for key, value in dictionary.items():
+        if not reversed_dictionary.has_key(value):
+            reversed_dictionary[value] = []
+        reversed_dictionary[value].append(key)
+
+    return reversed_dictionary
 
 
 # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
@@ -222,7 +252,11 @@ def walk(root_path, db, follow_links=False):
     #                    in current_dir_path.
     for current_dir_path, dir_names, file_names in os.walk(root_path, topdown=False, followlinks=follow_links):
 
-        current_dir_md5 = hashlib.md5()
+        # ABSOLUTE PATH OF current_dir_path
+        current_dir_path = os.path.abspath(current_dir_path)
+
+        # MAKE THE MD5 CURRENT_DIR GENERATOR
+        current_dir_md5_generator = hashlib.md5()
 
         # CHILD FILES
         for file_name in file_names:
@@ -232,7 +266,7 @@ def walk(root_path, db, follow_links=False):
             file_size = os.path.getsize(file_path)
             file_md5 = None
 
-            if db != None:
+            if db is not None:
                 if file_path in db:
                     db_file_mtime, db_file_size, db_file_md5 = db[file_path].split()
                     if file_mtime == db_file_mtime and file_size == db_file_size:
@@ -241,12 +275,12 @@ def walk(root_path, db, follow_links=False):
 
             if file_md5 is None:
                 file_md5 = md5sum(file_path)
-                if db != None:
+                if db is not None:
                     db[file_path] = "{0} {1} {2}".format(file_mtime, file_size, file_md5)
 
             local_file_dict[file_path] = file_md5
 
-            current_dir_md5.update(file_md5)
+            current_dir_md5_generator.update(file_md5)
 
         # CHILD DIRECTORIES
         for dir_name in dir_names:
@@ -254,14 +288,14 @@ def walk(root_path, db, follow_links=False):
 
             try:
                 dir_md5 = local_dir_dict[dir_path]
-                current_dir_md5.update(dir_md5)
+                current_dir_md5_generator.update(dir_md5)
             except KeyError:
                 # "local_dir_dict[dir_path]" should exists as we are doing a bottom-up tree walk
                 print 'Internal error. Check whether or not "topdown" argument is set to "False" in os.walk function call.'
                 sys.exit(4)
 
         # CURRENT DIRECTORY
-        local_dir_dict[current_dir_path] = current_dir_md5.hexdigest()
+        local_dir_dict[current_dir_path] = current_dir_md5_generator.hexdigest()
 
     return local_file_dict, local_dir_dict
 
