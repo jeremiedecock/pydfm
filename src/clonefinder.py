@@ -104,6 +104,7 @@ def main():
             sys.exit(2)
 
     print "Using", db_path, "database"
+    print
 
     # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
 
@@ -129,8 +130,14 @@ def main():
     reversed_file_dict = reverse_dictionary(file_dict)
     reversed_dir_dict = reverse_dictionary(dir_dict)
 
+    # REMOVE UNIQUE ITEMS #####################################################
+
+    reversed_file_dict = remove_unique_items(reversed_file_dict)
+    reversed_dir_dict = remove_unique_items(reversed_dir_dict)
+
     # REMOVE REDUNDANT ENTRIES ################################################
 
+    # TODO...
     for dir_hash, dir_paths in reversed_dir_dict.items():
         if len(dir_paths) > 1:
             for file_hash, file_paths in reversed_file_dict.items():
@@ -160,23 +167,27 @@ def main():
 
     # DISPLAY DUPLICATED FILES AND DIRECTORIES ################################
 
-    if len(reversed_dir_dict) > 0:      # TODO: prune reversed_dir_dict before
+    # DIRECTORIES
+    if len(reversed_dir_dict) > 0:
         print "* CLONED DIRECTORIES:"
         for md5, paths in reversed_dir_dict.items():
-            if len(paths) > 1:
-                for path in paths:
-                    mtime = time.ctime(os.path.getmtime(path))  # TODO: don't fetch mtime again...
-                    print "[%s]   %s" % (mtime, path)
-                print
+            for path in paths:
+                print path
+            print
+    else:
+        print "* NO CLONED DIRECTORY."
+        print
 
-    if len(reversed_file_dict) > 0:      # TODO: prune reversed_file_dict before
+    # FILES
+    if len(reversed_file_dict) > 0:
         print "* CLONED FILES:"
         for md5, paths in reversed_file_dict.items():
-            if len(paths) > 1:
-                for path in paths:
-                    mtime = time.ctime(os.path.getmtime(path))  # TODO: don't fetch mtime again...
-                    print "[%s]   %s" % (mtime, path)
-                print
+            for path in paths:
+                print path
+            print
+    else:
+        print "* NO CLONED FILE."
+        print
 
 
 # FILE UTILITIES ##############################################################
@@ -261,6 +272,14 @@ def reverse_dictionary(dictionary):
         reversed_dictionary[value].append(key)
 
     return reversed_dictionary
+
+
+def remove_unique_items(reversed_dict):
+    """Remove non-cloned items in the reversed dictionary given in argument."""
+
+    clone_reversed_dict = {md5: paths for md5, paths in reversed_dict.items() if len(paths)>1}
+
+    return clone_reversed_dict
 
 
 # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
