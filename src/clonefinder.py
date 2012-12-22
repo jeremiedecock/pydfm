@@ -49,7 +49,7 @@ def main():
     class RootPathsAction(argparse.Action):
         """Argparse's action class for 'root_paths' arguments."""
         def __call__(self, parser, args, values, option = None):
-            if not args.printdb and len(values) == 0:
+            if not args.printdb and not args.cleardb and  len(values) == 0:
                 parser.error("too few arguments")
             else:
                 args.root_paths = values
@@ -59,6 +59,7 @@ def main():
     parser.add_argument("--db", "-d", help="database path", metavar="STRING")
     parser.add_argument("--nodb", "-n", help="don't use database file", action="store_true")
     parser.add_argument("--printdb", "-p", help="print the database content and exit", action="store_true")
+    parser.add_argument("--cleardb", "-c", help="remove the database content and exit", action="store_true")
     parser.add_argument("--followlinks", "-l", help="follow links", action="store_true")
     parser.add_argument("--version", "-v", action="version", version="%(prog)s " + VERSION)
     parser.add_argument("root_paths", nargs="*", metavar="DIRECTORY", help="root directory", action=RootPathsAction)
@@ -82,6 +83,11 @@ def main():
     # PRINT_DB AND EXIT IF REQUESTED
     if args.printdb:
         print_db(db_path)
+        sys.exit(0)
+
+    # CLEAR_DB AND EXIT IF REQUESTED
+    if args.cleardb:
+        clear_db(db_path)
         sys.exit(0)
 
     # CHECK ROOT_PATHS
@@ -187,6 +193,8 @@ def md5sum(file_path):
     return md5_generator.hexdigest()        # str
 
 
+# DB UTILITIES ################################################################
+
 def get_default_db_path():
     """Return the default database path."""
 
@@ -212,6 +220,18 @@ def print_db(db_path):
                 print "{path} {mtime} {size} {md5}".format(path=file_path, mtime=file_mtime, size=file_size, md5=file_md5)
             print len(db), "files are recorded in", db_path
 
+        db.close()
+    else:
+        print "No database."
+
+
+def clear_db(db_path):
+    """Remove the database content."""
+
+    if db_path is not None:
+        print "Clear ", db_path
+        db = dumbdbm.open(db_path, 'c')
+        db.clear()
         db.close()
     else:
         print "No database."
