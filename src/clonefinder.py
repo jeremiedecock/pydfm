@@ -28,7 +28,6 @@
 
 import os
 import sys
-import time
 import argparse
 import hashlib
 import warnings
@@ -139,31 +138,30 @@ def main():
 
     # TODO...
     for dir_hash, dir_paths in reversed_dir_dict.items():
-        if len(dir_paths) > 1:
-            for file_hash, file_paths in reversed_file_dict.items():
-                if len(file_paths) == len(dir_paths):
-                    file_paths.sort()
-                    dir_paths.sort()
+        for file_hash, file_paths in reversed_file_dict.items():
+            if len(file_paths) == len(dir_paths):
+                file_paths.sort()
+                dir_paths.sort()
 
-                    redundant_entry = True
-                    for dir_path, file_path in zip(dir_paths, file_paths):
-                        if not file_path.startswith(dir_path):
-                            redundant_entry = False 
+                redundant_entry = True
+                for dir_path, file_path in zip(dir_paths, file_paths):
+                    if not file_path.startswith(dir_path):
+                        redundant_entry = False 
 
-                    if redundant_entry:
-                        del reversed_file_dict[file_hash]
-            for subdir_hash, subdir_paths in reversed_dir_dict.items():
-                if (len(subdir_paths) == len(dir_paths)) and (subdir_paths is not dir_paths):
-                    subdir_paths.sort()
-                    dir_paths.sort()
+                if redundant_entry:
+                    del reversed_file_dict[file_hash]  # TODO it's bad to remove an item in a collection while iterating it...
+        for subdir_hash, subdir_paths in reversed_dir_dict.items():
+            if (len(subdir_paths) == len(dir_paths)) and (subdir_paths is not dir_paths):
+                subdir_paths.sort()
+                dir_paths.sort()
 
-                    redundant_entry = True
-                    for dir_path, subdir_path in zip(dir_paths, subdir_paths):
-                        if not subdir_path.startswith(dir_path):
-                            redundant_entry = False 
+                redundant_entry = True
+                for dir_path, subdir_path in zip(dir_paths, subdir_paths):
+                    if not subdir_path.startswith(dir_path):
+                        redundant_entry = False 
 
-                    if redundant_entry:
-                        del reversed_dir_dict[subdir_hash]
+                if redundant_entry:
+                    del reversed_dir_dict[subdir_hash]  # TODO it's bad to remove an item in a collection while iterating it...
 
     # DISPLAY DUPLICATED FILES AND DIRECTORIES ################################
 
