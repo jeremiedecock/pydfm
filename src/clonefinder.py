@@ -31,6 +31,7 @@ import sys
 import time
 import argparse
 import hashlib
+import warnings
 
 import dumbdbm
 
@@ -41,8 +42,14 @@ There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR P
 
 CHUNK_SIZE = 2**12
 
+def custom_formatwarning(message, category, filename, lineno, line=""):
+    """Ignore everything except the message."""
+    return "Warning: " + str(message) + "\n"
+
 def main():
     """Main function"""
+
+    warnings.formatwarning = custom_formatwarning
 
     # PARSE OPTIONS ###########################################################
 
@@ -60,7 +67,6 @@ def main():
     parser.add_argument("--nodb", "-n", help="don't use database file", action="store_true")
     parser.add_argument("--printdb", "-p", help="print the database content and exit", action="store_true")
     parser.add_argument("--cleardb", "-c", help="remove the database content and exit", action="store_true")
-    parser.add_argument("--followlinks", "-l", help="follow links", action="store_true")
     parser.add_argument("--version", "-v", action="version", version="%(prog)s " + VERSION)
     parser.add_argument("root_paths", nargs="*", metavar="DIRECTORY", help="root directory", action=RootPathsAction)
 
@@ -110,7 +116,7 @@ def main():
 
     # For each root path specified in command line argmuents
     for path in args.root_paths:
-        local_file_dict, local_dir_dict = walk(path, db, args.followlinks)
+        local_file_dict, local_dir_dict = walk(path, db)
         file_dict.update(local_file_dict)
         dir_dict.update(local_dir_dict)
 
@@ -230,6 +236,7 @@ def clear_db(db_path):
 
     if db_path is not None:
         print "Clear ", db_path
+        #db = dumbdbm.open(db_path, 'n')  # TODO: it doesn't work...
         db = dumbdbm.open(db_path, 'c')
         db.clear()
         db.close()
@@ -258,7 +265,7 @@ def reverse_dictionary(dictionary):
 
 # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
 
-def walk(root_path, db, follow_links=False):
+def walk(root_path, db):
     """Walk the tree from "root_path" and build the {path:md5,...}
     dictionary"""
 
@@ -270,7 +277,7 @@ def walk(root_path, db, follow_links=False):
     #                    current_dir_path (excluding '.' and '..').
     # file_names       = a list of the names (strings) of the non-directory files
     #                    in current_dir_path.
-    for current_dir_path, dir_names, file_names in os.walk(root_path, topdown=False, followlinks=follow_links):
+    for current_dir_path, dir_names, file_names in os.walk(root_path, topdown=False, followlinks=False):
 
         # ABSOLUTE PATH OF current_dir_path
         current_dir_path = os.path.abspath(current_dir_path)
@@ -282,37 +289,45 @@ def walk(root_path, db, follow_links=False):
         for file_name in file_names:
             file_path = os.path.join(current_dir_path, file_name)
             
-            file_mtime = os.path.getmtime(file_path)
-            file_size = os.path.getsize(file_path)
-            file_md5 = None
+            if not os.path.islink(file_path):
+                file_mtime = os.path.getmtime(file_path)
+                file_size = os.path.getsize(file_path)
+                file_md5 = None
 
-            if db is not None:
-                if file_path in db:
-                    db_file_mtime, db_file_size, db_file_md5 = db[file_path].split()
-                    if file_mtime == db_file_mtime and file_size == db_file_size:
-                        # The file is known and hasn't changed since the last walk => don't compute the MD5, use the one in db.
-                        file_md5 = db_file_md5
-
-            if file_md5 is None:
-                file_md5 = md5sum(file_path)
                 if db is not None:
-                    db[file_path] = "{0} {1} {2}".format(file_mtime, file_size, file_md5)
+                    if file_path in db:
+                        db_file_mtime, db_file_size, db_file_md5 = db[file_path].split()
+                        if file_mtime == db_file_mtime and file_size == db_file_size:
+                            # The file is known and hasn't changed since the last walk => don't compute the MD5, use the one in db.
+                            file_md5 = db_file_md5
 
-            local_file_dict[file_path] = file_md5
+                if file_md5 is None:
+                    file_md5 = md5sum(file_path)
+                    if db is not None:
+                        db[file_path] = "{0} {1} {2}".format(file_mtime, file_size, file_md5)
 
-            current_dir_md5_generator.update(file_md5)
+                local_file_dict[file_path] = file_md5
+
+                current_dir_md5_generator.update(file_md5)
+#            else:
+#                warnings.warn("ignore link " + file_path, UserWarning)
 
         # CHILD DIRECTORIES
         for dir_name in dir_names:
             dir_path = os.path.join(current_dir_path, dir_name)
 
-            try:
-                dir_md5 = local_dir_dict[dir_path]
-                current_dir_md5_generator.update(dir_md5)
-            except KeyError:
-                # "local_dir_dict[dir_path]" should exists as we are doing a bottom-up tree walk
-                print 'Internal error. Check whether or not "topdown" argument is set to "False" in os.walk function call.'
-                sys.exit(4)
+            if not os.path.islink(dir_path):
+                try:
+                    dir_md5 = local_dir_dict[dir_path]
+                    current_dir_md5_generator.update(dir_md5)
+                except KeyError:
+                    ## "local_dir_dict[dir_path]" should exists as we are doing a bottom-up tree walk
+                    #print 'Internal error. Check whether or not "topdown" argument is set to "False" in os.walk function call.'
+                    #print dir_path, "key doesn't exist in \"local_dir_dict\" dictionary."
+                    #sys.exit(4)
+                    warnings.warn("can't access " + dir_path, UserWarning)
+#            else:
+#                warnings.warn("ignore link " + dir_path, UserWarning)
 
         # CURRENT DIRECTORY
         local_dir_dict[current_dir_path] = current_dir_md5_generator.hexdigest()
