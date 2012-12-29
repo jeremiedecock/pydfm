@@ -136,35 +136,8 @@ def main():
 
     # REMOVE REDUNDANT ENTRIES ################################################
 
-    #remove_redundant_entries(reversed_file_dict)
-    #remove_redundant_entries(reversed_dir_dict)
-
-    ## TODO...
-    #for dir_md5, dir_paths in reversed_dir_dict.items():
-    #    for file_hash, file_paths in reversed_file_dict.items():
-    #        if len(file_paths) == len(dir_paths):
-    #            file_paths.sort()
-    #            dir_paths.sort()
-
-    #            redundant_entry = True
-    #            for dir_path, file_path in zip(dir_paths, file_paths):
-    #                if not file_path.startswith(dir_path):
-    #                    redundant_entry = False 
-
-    #            if redundant_entry:
-    #                del reversed_file_dict[file_hash]  # TODO it's bad to remove an item in a collection while iterating it...
-    #    for subdir_md5, subdir_paths in reversed_dir_dict.items():
-    #        if (len(subdir_paths) == len(dir_paths)) and (subdir_paths is not dir_paths):
-    #            subdir_paths.sort()
-    #            dir_paths.sort()
-
-    #            redundant_entry = True
-    #            for dir_path, subdir_path in zip(dir_paths, subdir_paths):
-    #                if not subdir_path.startswith(dir_path):
-    #                    redundant_entry = False 
-
-    #            if redundant_entry:
-    #                del reversed_dir_dict[subdir_md5]  # TODO it's bad to remove an item in a collection while iterating it...
+    remove_redundant_entries(reversed_file_dict, dir_dict)
+    remove_redundant_entries(reversed_dir_dict, dir_dict)
 
     # DISPLAY DUPLICATED FILES AND DIRECTORIES ################################
 
@@ -283,19 +256,85 @@ def remove_unique_items(reversed_dict):
     return clone_reversed_dict
 
 
-#def remove_redundant_entries(reversed_dict):
-#
-#    for md5, path_list in reversed_dict.items():
-#        parent_md5 = set()
-#
-#        if len(path_list) < 2:
-#            except # TODO
-#
-#        for path in path_list:
-#            parent_md5.append(...) # TODO
-#
-#        if len(parent_md5) == 1:
-#            ... # TODO
+def remove_redundant_entries(reversed_dict, dir_dict):
+    """Supprime les fichiers redondants avec les répertoires affichés comme
+    clonés...
+
+    Pour chaque item du dictionnaire, si le répertoire père de tous les paths
+    ont tous le même MD5, alors le fichier peut être supprimé.
+
+    EXEMPLE1:
+
+        A      B      C    
+        |      |      |    
+        D      E      E    
+       / \    /|\    /|\   
+      1   2  1 2 3  1 2 3  
+               X      X
+
+      AVANT:
+
+      {3283298720787ba7:[B/E, C/E],
+       769726937697abff:[A/D/1, B/E/1, C/E/1],
+       6bffe3890aa890be:[A/D/2, B/E/2, C/E/2],
+       9fbba679127aa8cb:[B/E/3, C/E/3]}
+
+      APRÈS:
+
+      {3283298720787ba7:[B/E, C/E],
+       769726937697abff:[A/D/1, B/E/1, C/E/1],
+       6bffe3890aa890be:[A/D/2, B/E/2, C/E/2]}
+    
+      A/3 doit être retiré du dictinnaire mais pas E/1 et E/2 car sinon, D/1 et
+      D/2 seront affiché comme clonés mais pourtant seront seul dans la liste des
+      chemins...
+
+    EXEMPLE2 (TODO):
+
+        A      B      C      H   
+        |      |      |      |   
+        D      E      E      D   
+       / \    /|\    /|\    / \  
+      1   2  1 2 3  1 2 3  1   2 
+      X   X  X X X  X X X  X   X 
+
+      AVANT:
+
+      {3283298720787ba7:[B/E, C/E],
+       682763179aab2763:[A/D, H/D],
+       769726937697abff:[A/D/1, B/E/1, C/E/1, H/D/1],
+       6bffe3890aa890be:[A/D/2, B/E/2, C/E/2, H/D/2],
+       9fbba679127aa8cb:[B/E/3, C/E/3]}
+
+      APRÈS:
+
+      {3283298720787ba7:[B/E, C/E],
+       682763179aab2763:[A/D, H/D]}
+
+    """
+
+    keys_to_remove = []
+
+    for md5, path_list in reversed_dict.items():
+        parent_md5_set = set()
+
+        assert len(path_list) > 1, str(path_list)
+
+        for path in path_list:
+            parent_path = os.path.dirname(path)
+            if parent_path in dir_dict:
+                parent_md5 = dir_dict[parent_path]
+                parent_md5_set.add(parent_md5)
+            else:
+                # Root directories don't have parents in parent_path
+                warnings.warn("root directory ? " + path) # TODO: check
+
+        if len(parent_md5_set) == 1:
+            keys_to_remove.append(md5)
+
+    for key in keys_to_remove:
+        #print "remove", key
+        del reversed_dict[key]
 
 
 # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
