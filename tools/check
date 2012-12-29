@@ -1,0 +1,13 @@
+#!/bin/sh
+
+if [ -z $1 ]
+then
+    echo "Usage: check DIRECTORY"
+    exit 1
+fi
+
+echo -n "TOTAL: "
+find $1 -type f -exec md5sum {} \; | wc -l
+
+echo -n "UNIQ:  "
+find $1 -type f -exec md5sum {} \; | sort | uniq | wc -l
