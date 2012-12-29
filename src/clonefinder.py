@@ -136,32 +136,35 @@ def main():
 
     # REMOVE REDUNDANT ENTRIES ################################################
 
-    # TODO...
-    for dir_hash, dir_paths in reversed_dir_dict.items():
-        for file_hash, file_paths in reversed_file_dict.items():
-            if len(file_paths) == len(dir_paths):
-                file_paths.sort()
-                dir_paths.sort()
+    #remove_redundant_entries(reversed_file_dict)
+    #remove_redundant_entries(reversed_dir_dict)
 
-                redundant_entry = True
-                for dir_path, file_path in zip(dir_paths, file_paths):
-                    if not file_path.startswith(dir_path):
-                        redundant_entry = False 
+    ## TODO...
+    #for dir_md5, dir_paths in reversed_dir_dict.items():
+    #    for file_hash, file_paths in reversed_file_dict.items():
+    #        if len(file_paths) == len(dir_paths):
+    #            file_paths.sort()
+    #            dir_paths.sort()
 
-                if redundant_entry:
-                    del reversed_file_dict[file_hash]  # TODO it's bad to remove an item in a collection while iterating it...
-        for subdir_hash, subdir_paths in reversed_dir_dict.items():
-            if (len(subdir_paths) == len(dir_paths)) and (subdir_paths is not dir_paths):
-                subdir_paths.sort()
-                dir_paths.sort()
+    #            redundant_entry = True
+    #            for dir_path, file_path in zip(dir_paths, file_paths):
+    #                if not file_path.startswith(dir_path):
+    #                    redundant_entry = False 
 
-                redundant_entry = True
-                for dir_path, subdir_path in zip(dir_paths, subdir_paths):
-                    if not subdir_path.startswith(dir_path):
-                        redundant_entry = False 
+    #            if redundant_entry:
+    #                del reversed_file_dict[file_hash]  # TODO it's bad to remove an item in a collection while iterating it...
+    #    for subdir_md5, subdir_paths in reversed_dir_dict.items():
+    #        if (len(subdir_paths) == len(dir_paths)) and (subdir_paths is not dir_paths):
+    #            subdir_paths.sort()
+    #            dir_paths.sort()
 
-                if redundant_entry:
-                    del reversed_dir_dict[subdir_hash]  # TODO it's bad to remove an item in a collection while iterating it...
+    #            redundant_entry = True
+    #            for dir_path, subdir_path in zip(dir_paths, subdir_paths):
+    #                if not subdir_path.startswith(dir_path):
+    #                    redundant_entry = False 
+
+    #            if redundant_entry:
+    #                del reversed_dir_dict[subdir_md5]  # TODO it's bad to remove an item in a collection while iterating it...
 
     # DISPLAY DUPLICATED FILES AND DIRECTORIES ################################
 
@@ -280,6 +283,21 @@ def remove_unique_items(reversed_dict):
     return clone_reversed_dict
 
 
+#def remove_redundant_entries(reversed_dict):
+#
+#    for md5, path_list in reversed_dict.items():
+#        parent_md5 = set()
+#
+#        if len(path_list) < 2:
+#            except # TODO
+#
+#        for path in path_list:
+#            parent_md5.append(...) # TODO
+#
+#        if len(parent_md5) == 1:
+#            ... # TODO
+
+
 # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
 
 def walk(root_path, db):
@@ -299,8 +317,9 @@ def walk(root_path, db):
         # ABSOLUTE PATH OF current_dir_path
         current_dir_path = os.path.abspath(current_dir_path)
 
-        # MAKE THE MD5 CURRENT_DIR GENERATOR
-        current_dir_md5_generator = hashlib.md5()
+        # MAKE THE MD5 LIST OF CURRENT_DIR'S CONTENT (REQUIRED TO COMPUTE
+        # CURRENT_DIR'S MD5)
+        current_dir_md5_list = []
 
         # CHILD FILES
         for file_name in file_names:
@@ -325,7 +344,7 @@ def walk(root_path, db):
 
                 local_file_dict[file_path] = file_md5
 
-                current_dir_md5_generator.update(file_md5)
+                current_dir_md5_list.append(file_md5)
 #            else:
 #                warnings.warn("ignore link " + file_path, UserWarning)
 
@@ -336,7 +355,7 @@ def walk(root_path, db):
             if not os.path.islink(dir_path):
                 try:
                     dir_md5 = local_dir_dict[dir_path]
-                    current_dir_md5_generator.update(dir_md5)
+                    current_dir_md5_list.append(dir_md5)
                 except KeyError:
                     ## "local_dir_dict[dir_path]" should exists as we are doing a bottom-up tree walk
                     #print 'Internal error. Check whether or not "topdown" argument is set to "False" in os.walk function call.'
@@ -346,7 +365,15 @@ def walk(root_path, db):
 #            else:
 #                warnings.warn("ignore link " + dir_path, UserWarning)
 
-        # CURRENT DIRECTORY
+        # CURRENT_DIRECTORY'S MD5
+        current_dir_md5_generator = hashlib.md5()
+
+        # current_dir_md5_list have to be sorted because even for an identical
+        # set of items, different order implies different MD5
+        current_dir_md5_list.sort()
+
+        for item in current_dir_md5_list:
+            current_dir_md5_generator.update(item)
         local_dir_dict[current_dir_path] = current_dir_md5_generator.hexdigest()
 
     return local_file_dict, local_dir_dict
