@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2010,2011,2012 Jérémie DECOCK (http://www.jdhp.org)
+# Copyright (c) 2010,2011,2012,2013 Jérémie DECOCK (http://www.jdhp.org)
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,7 @@ import warnings
 import dumbdbm
 
 VERSION = "2.0"
-COPYING = '''Copyright (c) 2010,2011,2012 Jeremie DECOCK (http://www.jdhp.org)
+COPYING = '''Copyright (c) 2010,2011,2012,2013 Jeremie DECOCK (http://www.jdhp.org)
 This is free software; see the source for copying conditions.
 There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.'''
 
@@ -270,7 +270,7 @@ def remove_redundant_entries(reversed_dict, dir_dict):
         D      E      E    
        / \    /|\    /|\   
       1   2  1 2 3  1 2 3  
-               X      X
+                 X      X
 
       AVANT:
 
