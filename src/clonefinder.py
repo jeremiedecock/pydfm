@@ -142,25 +142,29 @@ def main():
     # DISPLAY DUPLICATED FILES AND DIRECTORIES ################################
 
     # DIRECTORIES
-    if len(reversed_dir_dict) > 0:
-        print "* CLONED DIRECTORIES:"
+    num_cloned_dir = len(reversed_dir_dict)
+    if num_cloned_dir > 0:
+        print "*** {0} CLONED DIRECTOR{1} ***".format(num_cloned_dir, ("Y" if num_cloned_dir==1 else "IES"))
+        print
         for md5, paths in reversed_dir_dict.items():
             for path in paths:
                 print path
             print
     else:
-        print "* NO CLONED DIRECTORY."
+        print "*** NO CLONED DIRECTORY ***"
         print
 
     # FILES
-    if len(reversed_file_dict) > 0:
-        print "* CLONED FILES:"
+    num_cloned_files = len(reversed_file_dict)
+    if num_cloned_files > 0:
+        print "*** {0} CLONED FILE{1} ***".format(num_cloned_files, ("" if num_cloned_files==1 else "S"))
+        print
         for md5, paths in reversed_file_dict.items():
             for path in paths:
                 print path
             print
     else:
-        print "* NO CLONED FILE."
+        print "*** NO CLONED FILE ***"
         print
 
 
