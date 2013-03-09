@@ -31,6 +31,7 @@ import sys
 import argparse
 import hashlib
 import warnings
+import itertools
 
 import dumbdbm
 
@@ -139,6 +140,10 @@ def main():
     remove_redundant_entries(reversed_file_dict, dir_dict)
     remove_redundant_entries(reversed_dir_dict, dir_dict)
 
+    # COMPUTE DIRECTORY LIKENESS ##############################################
+
+    directory_likeness_dict = compute_directory_likeness(reversed_file_dict)
+
     # DISPLAY DUPLICATED FILES AND DIRECTORIES ################################
 
     # DIRECTORIES
@@ -153,6 +158,18 @@ def main():
     else:
         print "*** NO CLONED DIRECTORY ***"
         print
+
+    # DIRECTORIES LIKENESS
+    # TODO: what if there is nothing to print here...
+    print "*** DIRECTORIES LIKENESS ***"
+    print
+    for path_pair, likeness in directory_likeness_dict.items():
+        assert len(path_pair) == 2
+        print likeness, "%"
+        print path_pair[0]
+        print path_pair[1]
+        print
+    print
 
     # FILES
     num_cloned_files = len(reversed_file_dict)
@@ -264,6 +281,8 @@ def remove_redundant_entries(reversed_dict, dir_dict):
     """Supprime les fichiers redondants avec les répertoires affichés comme
     clonés...
 
+    reverse_dict = {md5: [path1, path2, ...], ...}
+
     Pour chaque item du dictionnaire, si le répertoire père de tous les paths
     ont tous le même MD5, alors le fichier peut être supprimé.
 
@@ -341,10 +360,54 @@ def remove_redundant_entries(reversed_dict, dir_dict):
         del reversed_dict[key]
 
 
+def compute_directory_likeness(reversed_file_dict):
+    """Compute directories similarity
+    
+    reverse_file_dict = {md5: [path1, path2, ...], ...}
+
+    1. construit l'ensemble des répertoires contenant des fichiers clonés
+
+    2. construit la liste des combinaisons possibles de ces répertoires avec
+       itertools.combinations():
+
+          [DIR1, DIR2, DIR3] -> ((DIR1,DIR2), (DIR1,DIR3), (DIR2,DIR3))
+
+                                      1 2 3
+                                    1 . x x
+                                    2 . . x
+                                    3 . . .
+
+    3. crée un dictionnaire ayant comme clé les couples construits dans 2.
+       et comme valeur le pourcentage de fichiers clonnées dans le couple
+       (par rapport à l'union de tous les fichiers du couple): 
+
+          {(DIR1, DIR2): PERCENT, ...}
+
+       avec PERCENT = #(DIR1 ∩ DIR2) / #(DIR1 ∪ DIR2) * 100.
+
+    4. retourne ce dictionnaire
+    """
+
+    # Construit l'ensemble des répertoires contenant des fichiers clonés
+    dir_set = set()
+    for md5, paths in reversed_file_dict.items():
+        for path in paths:
+            dir_set.add(os.path.dirname(path))
+
+    # Construit la liste des combinaisons possibles de ces répertoires
+    # et le dictionnaire {(DIR1, DIR2): PERCENT, ...}
+    directory_likeness_dict = {}
+    for path_pair in itertools.combinations(dir_set, 2):
+        likeness = 0                                              # TODO
+        directory_likeness_dict[path_pair] = likeness
+
+    return directory_likeness_dict
+
+
 # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
 
 def walk(root_path, db):
-    """Walk the tree from "root_path" and build the {path:md5,...}
+    """Walk the tree starting from "root_path" and build the {path:md5,...}
     dictionary"""
 
     local_file_dict = {}   # dict = {path: md5, ...}
