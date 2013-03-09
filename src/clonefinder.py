@@ -42,6 +42,8 @@ There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR P
 
 CHUNK_SIZE = 2**12
 
+LIKENESS_THRESHOLD = 0
+
 def custom_formatwarning(message, category, filename, lineno, line=""):
     """Ignore everything except the message."""
     return "Warning: " + str(message) + "\n"
@@ -160,16 +162,17 @@ def main():
         print
 
     # DIRECTORIES LIKENESS
-    # TODO: what if there is nothing to print here...
-    print "*** DIRECTORIES LIKENESS ***"
-    print
-    for path_pair, likeness in directory_likeness_dict.items():
-        assert len(path_pair) == 2
-        print likeness, "%"
-        print path_pair[0]
-        print path_pair[1]
+    directory_likeness_list = [item for item in directory_likeness_dict.items() if item[1] > LIKENESS_THRESHOLD]
+    directory_likeness_list.sort(key=lambda x: x[1], reverse=True)
+    if len(directory_likeness_list) > 0:
+        print "*** DIRECTORIES LIKENESS ***"
         print
-    print
+        for path_pair, likeness in directory_likeness_list:
+            assert len(path_pair) == 2
+            print "{0}%".format(likeness)
+            print path_pair[0]
+            print path_pair[1]
+            print
 
     # FILES
     num_cloned_files = len(reversed_file_dict)
@@ -398,7 +401,15 @@ def compute_directory_likeness(reversed_file_dict):
     # et le dictionnaire {(DIR1, DIR2): PERCENT, ...}
     directory_likeness_dict = {}
     for path_pair in itertools.combinations(dir_set, 2):
-        likeness = 0                                              # TODO
+
+        md5_file_set_1 = frozenset(os.listdir(path_pair[0]))          # TODO: get MD5 instead of filename !!! <<<<<<<<
+        md5_file_set_2 = frozenset(os.listdir(path_pair[1]))          # TODO: get MD5 instead of filename !!! <<<<<<<<
+
+        inter_file_set = md5_file_set_1 & md5_file_set_2
+        union_file_set = md5_file_set_1 | md5_file_set_2
+
+        likeness = 100. * len(inter_file_set) / len(union_file_set)
+
         directory_likeness_dict[path_pair] = likeness
 
     return directory_likeness_dict
