@@ -162,7 +162,7 @@ def main():
         print
 
     # DIRECTORIES LIKENESS
-    directory_likeness_list = [item for item in directory_likeness_dict.items() if item[1] > LIKENESS_THRESHOLD]
+    directory_likeness_list = [item for item in directory_likeness_dict.items() if LIKENESS_THRESHOLD < item[1] < 100 ]
     directory_likeness_list.sort(key=lambda x: x[1], reverse=True)
     if len(directory_likeness_list) > 0:
         print "*** DIRECTORIES LIKENESS ***"
@@ -287,7 +287,8 @@ def remove_redundant_entries(reversed_dict, dir_dict):
     reverse_dict = {md5: [path1, path2, ...], ...}
 
     Pour chaque item du dictionnaire, si le répertoire père de tous les paths
-    ont tous le même MD5, alors le fichier peut être supprimé.
+    ont tous le même MD5 et au moins un chemin différent, alors le fichier peut
+    être supprimé.
 
     EXEMPLE1:
 
@@ -337,12 +338,32 @@ def remove_redundant_entries(reversed_dict, dir_dict):
       {3283298720787ba7:[B/E, C/E],
        682763179aab2763:[A/D, H/D]}
 
+    EXEMPLE3:
+
+        A      B¹     B²    
+       / \    /|\    /|\   
+      1¹  1² 1¹1²2  1¹1²2  
+                 X      X
+
+      AVANT:
+
+      {3283298720787ba7:[B¹, B²],
+       769726937697abff:[A/1¹, A/1², B¹/1¹, B¹/1², B²/1¹, B²/1²],
+       9fbba679127aa8cb:[B¹/2, B²/2]}
+
+      APRÈS:
+
+      {3283298720787ba7:[B¹, B²],
+       769726937697abff:[A/1¹, A/1², B¹/1¹, B¹/1², B²/1¹, B²/1²]}
+    
     """
 
     keys_to_remove = []
 
+    # reverse_dict = {md5: [path1, path2, ...], ...}
     for md5, path_list in reversed_dict.items():
         parent_md5_set = set()
+        parent_path_set = set()
 
         assert len(path_list) > 1, str(path_list)
 
@@ -351,11 +372,13 @@ def remove_redundant_entries(reversed_dict, dir_dict):
             if parent_path in dir_dict:
                 parent_md5 = dir_dict[parent_path]
                 parent_md5_set.add(parent_md5)
+                parent_path_set.add(parent_path)
             else:
                 # Root directories don't have parents in parent_path
                 warnings.warn("root directory ? " + path) # TODO: check
 
-        if len(parent_md5_set) == 1:
+        # if all parents have the same content and if there are at least 2 parents
+        if len(parent_md5_set) == 1 and len(parent_path_set) > 1:
             keys_to_remove.append(md5)
 
     for key in keys_to_remove:
