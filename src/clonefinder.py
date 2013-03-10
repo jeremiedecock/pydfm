@@ -144,7 +144,7 @@ def main():
 
     # COMPUTE DIRECTORY LIKENESS ##############################################
 
-    directory_likeness_dict = compute_directory_likeness(reversed_file_dict)
+    directory_likeness_dict = compute_directory_likeness(reversed_file_dict, file_dict, dir_dict)
 
     # DISPLAY DUPLICATED FILES AND DIRECTORIES ################################
 
@@ -386,10 +386,12 @@ def remove_redundant_entries(reversed_dict, dir_dict):
         del reversed_dict[key]
 
 
-def compute_directory_likeness(reversed_file_dict):
+def compute_directory_likeness(reversed_file_dict, file_dict, dir_dict):
     """Compute directories similarity
     
     reverse_file_dict = {md5: [path1, path2, ...], ...}
+    file_dict = {path: md5, ...}
+    dir_dict = {path: md5, ...}
 
     1. construit l'ensemble des répertoires contenant des fichiers clonés
 
@@ -420,16 +422,33 @@ def compute_directory_likeness(reversed_file_dict):
         for path in paths:
             dir_set.add(os.path.dirname(path))
 
+    # Make file_dir_dict the "union" of file_dict and dir_dict
+    file_dir_dict = file_dict.copy()
+    file_dir_dict.update(dir_dict)
+    assert len(file_dir_dict) == len(file_dict) + len(dir_dict)
+
     # Construit la liste des combinaisons possibles de ces répertoires
     # et le dictionnaire {(DIR1, DIR2): PERCENT, ...}
     directory_likeness_dict = {}
     for path_pair in itertools.combinations(dir_set, 2):
 
-        md5_file_set_1 = frozenset(os.listdir(path_pair[0]))          # TODO: get MD5 instead of filename !!! <<<<<<<<
-        md5_file_set_2 = frozenset(os.listdir(path_pair[1]))          # TODO: get MD5 instead of filename !!! <<<<<<<<
+        file_path_list_1 = [os.path.join(path_pair[0], file_name) for file_name in os.listdir(path_pair[0])]
+        file_path_list_2 = [os.path.join(path_pair[1], file_name) for file_name in os.listdir(path_pair[1])]
 
-        inter_file_set = md5_file_set_1 & md5_file_set_2
-        union_file_set = md5_file_set_1 | md5_file_set_2
+        file_md5_list_1 = [file_dir_dict[file_path] for file_path in file_path_list_1]
+        file_md5_list_2 = [file_dir_dict[file_path] for file_path in file_path_list_2]
+
+        # TODO: multisets (collections.Counter in Python) may be a better
+        # choice as the same MD5 may be present multiple times in the same
+        # directory. See
+        # http://stackoverflow.com/questions/5094083/find-the-overlap-between-2-python-lists
+        # and
+        # http://docs.python.org/2/library/collections.html#collections.Counter
+        file_md5_set_1 = frozenset(file_md5_list_1)
+        file_md5_set_2 = frozenset(file_md5_list_2)
+
+        inter_file_set = file_md5_set_1 & file_md5_set_2
+        union_file_set = file_md5_set_1 | file_md5_set_2
 
         likeness = 100. * len(inter_file_set) / len(union_file_set)
 
