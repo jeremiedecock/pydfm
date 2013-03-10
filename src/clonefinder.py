@@ -32,6 +32,7 @@ import argparse
 import hashlib
 import warnings
 import itertools
+import collections
 
 import dumbdbm
 
@@ -438,19 +439,16 @@ def compute_directory_likeness(reversed_file_dict, file_dict, dir_dict):
         file_md5_list_1 = [file_dir_dict[file_path] for file_path in file_path_list_1]
         file_md5_list_2 = [file_dir_dict[file_path] for file_path in file_path_list_2]
 
-        # TODO: multisets (collections.Counter in Python) may be a better
-        # choice as the same MD5 may be present multiple times in the same
-        # directory. See
-        # http://stackoverflow.com/questions/5094083/find-the-overlap-between-2-python-lists
-        # and
-        # http://docs.python.org/2/library/collections.html#collections.Counter
-        file_md5_set_1 = frozenset(file_md5_list_1)
-        file_md5_set_2 = frozenset(file_md5_list_2)
+        # On utilise des multisets (collections.Counter en Python) plutot que
+        # des sets ou des frozensets car il se peut qu'un meme MD5 soit present
+        # plusieurs fois dans le meme repertoire.
+        file_md5_multiset_1 = collections.Counter(file_md5_list_1)
+        file_md5_multiset_2 = collections.Counter(file_md5_list_2)
 
-        inter_file_set = file_md5_set_1 & file_md5_set_2
-        union_file_set = file_md5_set_1 | file_md5_set_2
+        inter_file_multiset = file_md5_multiset_1 & file_md5_multiset_2
+        union_file_multiset = file_md5_multiset_1 | file_md5_multiset_2
 
-        likeness = 100. * len(inter_file_set) / len(union_file_set)
+        likeness = 100. * sum(inter_file_multiset.values()) / sum(union_file_multiset.values())
 
         directory_likeness_dict[path_pair] = likeness
 
