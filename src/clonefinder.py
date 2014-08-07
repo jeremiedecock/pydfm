@@ -85,9 +85,7 @@ def main():
         else:
             db_path = args.db
             if not os.path.isfile(db_path):
-                print "ERROR: {0} is not a file.".format(db_path)
-                print parser.format_usage(),
-                sys.exit(3)
+                parser.error("{0} is not a file.".format(path))
 
     # PRINT_DB AND EXIT IF REQUESTED
     if args.printdb:
@@ -102,9 +100,7 @@ def main():
     # CHECK ROOT_PATHS
     for path in args.root_paths:
         if not os.path.isdir(path):
-            print "ERROR: {0} is not a directory.".format(path)
-            print parser.format_usage(),
-            sys.exit(2)
+            parser.error("{0} is not a directory.".format(path))
 
     print "Using", db_path, "database"
     print
