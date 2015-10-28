@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Clonefinder
+
+# The MIT License
+#
+# Copyright (c) 2010,2011,2012,2013,2015 Jeremie DECOCK (http://www.jdhp.org)
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+"""
+The clonefinder launch script (without GUI).
+"""
+
+__all__ = ['main']
+
+import argparse
+import os
+import sys
+import warnings
+
+from clonefinder import __version__ as VERSION
+
+import clonefinder.core as cf
+
+
+PROG_DESCRIPTION = 'Find duplicated files and directories.'
+
+
+def custom_formatwarning(message, category, filename, lineno, line=""):
+    """Ignore everything except the message."""
+
+    return "Warning: " + str(message) + "\n"
+
+
+def main():
+    """Parse the program options and launch clonefinder."""
+
+    warnings.formatwarning = custom_formatwarning
+
+    # PARSE OPTIONS ###########################################################
+
+    class RootPathsAction(argparse.Action):
+        """Argparse's action class for 'root_paths' arguments."""
+        def __call__(self, parser, args, values, option=None):
+            if not args.printdb and not args.cleardb and  len(values) == 0:
+                parser.error("too few arguments")
+            else:
+                args.root_paths = values
+
+    parser = argparse.ArgumentParser(description=PROG_DESCRIPTION)
+
+    parser.add_argument("--db", "-d",
+                        help="database path",
+                        metavar="STRING")
+    parser.add_argument("--nodb", "-n",
+                        help="don't use database file",
+                        action="store_true")
+    parser.add_argument("--printdb", "-p",
+                        help="print the database content and exit",
+                        action="store_true")
+    parser.add_argument("--cleardb", "-c",
+                        help="remove the database content and exit",
+                        action="store_true")
+    parser.add_argument("--version", "-v",
+                        action="version",
+                        version="%(prog)s " + VERSION)
+    parser.add_argument("root_paths",
+                        help="root directory",
+                        nargs="*",
+                        metavar="DIRECTORY",
+                        action=RootPathsAction)
+
+    args = parser.parse_args()
+
+    # SET DB_PATH
+    db_path = None
+    if args.nodb:
+        pass
+    else:
+        if args.db is None:
+            db_path = cf.get_default_db_path()
+        else:
+            db_path = args.db
+            if not os.path.isfile(db_path):
+                parser.error("{0} is not a file.".format(db_path))
+
+    # PRINT_DB AND EXIT IF REQUESTED
+    if args.printdb:
+        cf.print_db(db_path)
+        sys.exit(0)
+
+    # CLEAR_DB AND EXIT IF REQUESTED
+    if args.cleardb:
+        # TODO: simply remove the file, it's much faster...
+        cf.clear_db(db_path)
+        sys.exit(0)
+
+    # CHECK ROOT_PATHS
+    for path in args.root_paths:
+        if not os.path.isdir(path):
+            parser.error("{0} is not a directory.".format(path))
+
+    print("Using", db_path, "database")
+    print()
+
+    # RUN CLONEFINDER
+    cf.run(args.root_paths, db_path)
+
+if __name__ == '__main__':
+    main()
+

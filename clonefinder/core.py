@@ -1,18 +1,22 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2010,2011,2012,2013 Jérémie DECOCK (http://www.jdhp.org)
+# Clonefinder
 
+# The MIT License
+#
+# Copyright (c) 2010,2011,2012,2013,2015 Jeremie DECOCK (http://www.jdhp.org)
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
- 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
- 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,89 +25,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+"""
+The clonefinder core module.
+"""
 
+__all__ = ['run',
+           'reverse_dictionary',
+           'remove_unique_items',
+           'remove_redundant_entries',
+           'compute_directory_likeness',
+           'walk']
 
-# http://www.techsupportalert.com/best-free-duplicate-file-detector.htm
-
-
-import os
-import sys
-import argparse
-import hashlib
-import warnings
-import itertools
 import collections
+import dbm.dumb      # TODO
+import hashlib       # TODO
+import itertools
+import os
+import warnings
 
-import dumbdbm
-
-VERSION = "2.0"
-COPYING = '''Copyright (c) 2010,2011,2012,2013 Jeremie DECOCK (http://www.jdhp.org)
-This is free software; see the source for copying conditions.
-There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.'''
-
-CHUNK_SIZE = 2**12
+from clonefinder.file_hash import md5sum
+from clonefinder.database import get_default_db_path, print_db, clear_db
 
 LIKENESS_THRESHOLD = 0
 
-def custom_formatwarning(message, category, filename, lineno, line=""):
-    """Ignore everything except the message."""
-    return "Warning: " + str(message) + "\n"
-
-def main():
-    """Main function"""
-
-    warnings.formatwarning = custom_formatwarning
-
-    # PARSE OPTIONS ###########################################################
-
-    class RootPathsAction(argparse.Action):
-        """Argparse's action class for 'root_paths' arguments."""
-        def __call__(self, parser, args, values, option = None):
-            if not args.printdb and not args.cleardb and  len(values) == 0:
-                parser.error("too few arguments")
-            else:
-                args.root_paths = values
-
-    parser = argparse.ArgumentParser(description='Find duplicated files and directories.')
-
-    parser.add_argument("--db", "-d", help="database path", metavar="STRING")
-    parser.add_argument("--nodb", "-n", help="don't use database file", action="store_true")
-    parser.add_argument("--printdb", "-p", help="print the database content and exit", action="store_true")
-    parser.add_argument("--cleardb", "-c", help="remove the database content and exit", action="store_true")
-    parser.add_argument("--version", "-v", action="version", version="%(prog)s " + VERSION)
-    parser.add_argument("root_paths", nargs="*", metavar="DIRECTORY", help="root directory", action=RootPathsAction)
-
-    args = parser.parse_args()
-
-    # SET DB_PATH
-    db_path = None
-    if args.nodb:
-        pass
-    else:
-        if args.db is None:
-            db_path = get_default_db_path()
-        else:
-            db_path = args.db
-            if not os.path.isfile(db_path):
-                parser.error("{0} is not a file.".format(path))
-
-    # PRINT_DB AND EXIT IF REQUESTED
-    if args.printdb:
-        print_db(db_path)
-        sys.exit(0)
-
-    # CLEAR_DB AND EXIT IF REQUESTED
-    if args.cleardb:
-        clear_db(db_path)
-        sys.exit(0)
-
-    # CHECK ROOT_PATHS
-    for path in args.root_paths:
-        if not os.path.isdir(path):
-            parser.error("{0} is not a directory.".format(path))
-
-    print "Using", db_path, "database"
-    print
+def run(root_paths, db_path=None):
 
     # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
 
@@ -112,10 +57,10 @@ def main():
 
     db = None
     if db_path is not None:
-        db = dumbdbm.open(db_path, 'c')
+        db = dbm.dumb.open(db_path, 'c')
 
     # For each root path specified in command line argmuents
-    for path in args.root_paths:
+    for path in root_paths:
         local_file_dict, local_dir_dict = walk(path, db)
         file_dict.update(local_file_dict)
         dir_dict.update(local_dir_dict)
@@ -141,113 +86,48 @@ def main():
 
     # COMPUTE DIRECTORY LIKENESS ##############################################
 
-    directory_likeness_dict = compute_directory_likeness(reversed_file_dict, file_dict, dir_dict)
+    directory_likeness_dict = compute_directory_likeness(reversed_file_dict,
+                                                         file_dict,
+                                                         dir_dict)
 
     # DISPLAY DUPLICATED FILES AND DIRECTORIES ################################
 
     # DIRECTORIES
     num_cloned_dir = len(reversed_dir_dict)
     if num_cloned_dir > 0:
-        print "*** {0} CLONED DIRECTOR{1} ***".format(num_cloned_dir, ("Y" if num_cloned_dir==1 else "IES"))
-        print
-        for md5, paths in reversed_dir_dict.items():
+        suffix = "Y" if num_cloned_dir == 1 else "IES"
+        print("*** {0} CLONED DIRECTOR{1} ***\n".format(num_cloned_dir, suffix))
+        for md5, paths in list(reversed_dir_dict.items()):
             for path in paths:
-                print path
-            print
+                print(path)
+            print()
     else:
-        print "*** NO CLONED DIRECTORY ***"
-        print
+        print("*** NO CLONED DIRECTORY ***\n")
 
     # DIRECTORIES LIKENESS
-    directory_likeness_list = [item for item in directory_likeness_dict.items() if LIKENESS_THRESHOLD < item[1] < 100 ]
+    directory_likeness_list = [item for item in list(directory_likeness_dict.items()) if LIKENESS_THRESHOLD < item[1] < 100]
     directory_likeness_list.sort(key=lambda x: x[1], reverse=True)
     if len(directory_likeness_list) > 0:
-        print "*** DIRECTORIES LIKENESS ***"
-        print
+        print("*** DIRECTORIES LIKENESS ***")
+        print()
         for path_pair, likeness in directory_likeness_list:
             assert len(path_pair) == 2
-            print "{0}%".format(likeness)
-            print path_pair[0]
-            print path_pair[1]
-            print
+            print("{0}%".format(likeness))
+            print(path_pair[0])
+            print(path_pair[1])
+            print()
 
     # FILES
     num_cloned_files = len(reversed_file_dict)
     if num_cloned_files > 0:
-        print "*** {0} CLONED FILE{1} ***".format(num_cloned_files, ("" if num_cloned_files==1 else "S"))
-        print
-        for md5, paths in reversed_file_dict.items():
+        suffix = "" if num_cloned_files == 1 else "S"
+        print("*** {0} CLONED FILE{1} ***\n".format(num_cloned_files, suffix))
+        for md5, paths in list(reversed_file_dict.items()):
             for path in paths:
-                print path
-            print
+                print(path)
+            print()
     else:
-        print "*** NO CLONED FILE ***"
-        print
-
-
-# FILE UTILITIES ##############################################################
-
-def md5sum(file_path):
-    """Compute md5"""
-
-    md5_generator = hashlib.md5()
-
-    if os.path.isfile(file_path):
-        file_descriptor = open(file_path, 'rb')
-        try:
-            data = file_descriptor.read(CHUNK_SIZE)
-            while data:
-                md5_generator.update(data)
-                data = file_descriptor.read(CHUNK_SIZE)
-        finally:
-            file_descriptor.close()
-
-    return md5_generator.hexdigest()        # str
-
-
-# DB UTILITIES ################################################################
-
-def get_default_db_path():
-    """Return the default database path."""
-
-    # A cross-platform way to get the current user's home directory
-    home_dir = os.path.expanduser("~")
-    default_db_filename = ".clonefinder"
-    db_path = os.path.join(home_dir, default_db_filename)
-
-    return db_path
-
-
-def print_db(db_path):
-    """Print the database content."""
-
-    if db_path is not None:
-        db = dumbdbm.open(db_path, 'c')
-
-        if len(db) == 0:
-            print "Empty database."
-        else:
-            for file_path, file_attributes in db.items():
-                file_mtime, file_size, file_md5 = file_attributes.split()
-                print "{path} {mtime} {size} {md5}".format(path=file_path, mtime=file_mtime, size=file_size, md5=file_md5)
-            print len(db), "files are recorded in", db_path
-
-        db.close()
-    else:
-        print "No database."
-
-
-def clear_db(db_path):
-    """Remove the database content."""
-
-    if db_path is not None:
-        print "Clear ", db_path
-        #db = dumbdbm.open(db_path, 'n')  # TODO: it doesn't work...
-        db = dumbdbm.open(db_path, 'c')
-        db.clear()
-        db.close()
-    else:
-        print "No database."
+        print("*** NO CLONED FILE ***\n")
 
 
 # TOOLS
@@ -261,8 +141,8 @@ def reverse_dictionary(dictionary):
 
     reversed_dictionary = {}
 
-    for key, value in dictionary.items():
-        if not reversed_dictionary.has_key(value):
+    for key, value in list(dictionary.items()):
+        if value not in reversed_dictionary:
             reversed_dictionary[value] = []
         reversed_dictionary[value].append(key)
 
@@ -272,13 +152,13 @@ def reverse_dictionary(dictionary):
 def remove_unique_items(reversed_dict):
     """Remove non-cloned items in the reversed dictionary given in argument."""
 
-    clone_reversed_dict = {md5: paths for md5, paths in reversed_dict.items() if len(paths)>1}
+    clone_reversed_dict = {md5: paths for md5, paths in list(reversed_dict.items()) if len(paths) > 1}
 
     return clone_reversed_dict
 
 
 def remove_redundant_entries(reversed_dict, dir_dict):
-    """Supprime les fichiers redondants avec les répertoires affichés comme
+    r"""Supprime les fichiers redondants avec les répertoires affichés comme
     clonés...
 
     reverse_dict = {md5: [path1, path2, ...], ...}
@@ -289,11 +169,11 @@ def remove_redundant_entries(reversed_dict, dir_dict):
 
     EXEMPLE1:
 
-        A      B      C    
-        |      |      |    
-        D      E      E    
-       / \    /|\    /|\   
-      1   2  1 2 3  1 2 3  
+        A      B      C
+        |      |      |
+        D      E      E
+       / \    /|\    /|\
+      1   2  1 2 3  1 2 3
                  X      X
 
       AVANT:
@@ -308,19 +188,19 @@ def remove_redundant_entries(reversed_dict, dir_dict):
       {3283298720787ba7:[B/E, C/E],
        769726937697abff:[A/D/1, B/E/1, C/E/1],
        6bffe3890aa890be:[A/D/2, B/E/2, C/E/2]}
-    
+
       A/3 doit être retiré du dictinnaire mais pas E/1 et E/2 car sinon, D/1 et
-      D/2 seront affiché comme clonés mais pourtant seront seul dans la liste des
-      chemins...
+      D/2 seront affiché comme clonés mais pourtant seront seul dans la liste
+      des chemins...
 
     EXEMPLE2 (TODO):
 
-        A      B      C      H   
-        |      |      |      |   
-        D      E      E      D   
-       / \    /|\    /|\    / \  
-      1   2  1 2 3  1 2 3  1   2 
-      X   X  X X X  X X X  X   X 
+        A      B      C      H
+        |      |      |      |
+        D      E      E      D
+       / \    /|\    /|\    / \
+      1   2  1 2 3  1 2 3  1   2
+      X   X  X X X  X X X  X   X
 
       AVANT:
 
@@ -337,9 +217,9 @@ def remove_redundant_entries(reversed_dict, dir_dict):
 
     EXEMPLE3:
 
-        A      B¹     B²    
-       / \    /|\    /|\   
-      1¹  1² 1¹1²2  1¹1²2  
+        A      B¹     B²
+       / \    /|\    /|\
+      1¹  1² 1¹1²2  1¹1²2
                  X      X
 
       AVANT:
@@ -352,13 +232,12 @@ def remove_redundant_entries(reversed_dict, dir_dict):
 
       {3283298720787ba7:[B¹, B²],
        769726937697abff:[A/1¹, A/1², B¹/1¹, B¹/1², B²/1¹, B²/1²]}
-    
     """
 
     keys_to_remove = []
 
     # reverse_dict = {md5: [path1, path2, ...], ...}
-    for md5, path_list in reversed_dict.items():
+    for md5, path_list in list(reversed_dict.items()):
         parent_md5_set = set()
         parent_path_set = set()
 
@@ -374,7 +253,8 @@ def remove_redundant_entries(reversed_dict, dir_dict):
                 # Root directories don't have parents in parent_path
                 warnings.warn("root directory ? " + path) # TODO: check
 
-        # if all parents have the same content and if there are at least 2 parents
+        # if all parents have the same content and if there are at least
+        # 2 parents
         if len(parent_md5_set) == 1 and len(parent_path_set) > 1:
             keys_to_remove.append(md5)
 
@@ -385,7 +265,7 @@ def remove_redundant_entries(reversed_dict, dir_dict):
 
 def compute_directory_likeness(reversed_file_dict, file_dict, dir_dict):
     """Compute directories similarity
-    
+
     reverse_file_dict = {md5: [path1, path2, ...], ...}
     file_dict = {path: md5, ...}
     dir_dict = {path: md5, ...}
@@ -404,7 +284,7 @@ def compute_directory_likeness(reversed_file_dict, file_dict, dir_dict):
 
     3. crée un dictionnaire ayant comme clé les couples construits dans 2.
        et comme valeur le pourcentage de fichiers clonnées dans le couple
-       (par rapport à l'union de tous les fichiers du couple): 
+       (par rapport à l'union de tous les fichiers du couple):
 
           {(DIR1, DIR2): PERCENT, ...}
 
@@ -415,7 +295,7 @@ def compute_directory_likeness(reversed_file_dict, file_dict, dir_dict):
 
     # Construit l'ensemble des répertoires contenant des fichiers clonés
     dir_set = set()
-    for md5, paths in reversed_file_dict.items():
+    for md5, paths in list(reversed_file_dict.items()):
         for path in paths:
             dir_set.add(os.path.dirname(path))
 
@@ -451,7 +331,7 @@ def compute_directory_likeness(reversed_file_dict, file_dict, dir_dict):
     return directory_likeness_dict
 
 
-# BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
+# BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #############################
 
 def walk(root_path, db):
     """Walk the tree starting from "root_path" and build the {path:md5,...}
@@ -459,7 +339,7 @@ def walk(root_path, db):
 
     local_file_dict = {}   # dict = {path: md5, ...}
     local_dir_dict = {}    # dict = {path: md5, ...}
-    
+
     # current_dir_path = a string, the path to the directory.
     # dir_names        = a list of the names (strings) of the subdirectories in
     #                    current_dir_path (excluding '.' and '..').
@@ -477,7 +357,7 @@ def walk(root_path, db):
         # CHILD FILES
         for file_name in file_names:
             file_path = os.path.join(current_dir_path, file_name)
-            
+
             if not os.path.islink(file_path):
                 file_mtime = os.path.getmtime(file_path)
                 file_size = os.path.getsize(file_path)
@@ -487,7 +367,9 @@ def walk(root_path, db):
                     if file_path in db:
                         db_file_mtime, db_file_size, db_file_md5 = db[file_path].split()
                         if file_mtime == db_file_mtime and file_size == db_file_size:
-                            # The file is known and hasn't changed since the last walk => don't compute the MD5, use the one in db.
+                            # The file is known and hasn't changed since the
+                            # last walk => don't compute the MD5, use the one
+                            # in db.
                             file_md5 = db_file_md5
 
                 if file_md5 is None:
@@ -526,12 +408,8 @@ def walk(root_path, db):
         current_dir_md5_list.sort()
 
         for item in current_dir_md5_list:
-            current_dir_md5_generator.update(item)
+            current_dir_md5_generator.update(bytes(item, 'utf-8'))  # TODO
         local_dir_dict[current_dir_path] = current_dir_md5_generator.hexdigest()
 
     return local_file_dict, local_dir_dict
-
-
-if __name__ == '__main__':
-    main()
 
