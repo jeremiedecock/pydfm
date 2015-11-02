@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Clonefinder
+# PyDuplicateFileManager
 
 # The MIT License
 #
@@ -26,7 +26,7 @@
 # THE SOFTWARE.
 
 """
-The clonefinder core module.
+The Duplicate File Manager core module.
 """
 
 __all__ = ['run',
@@ -43,8 +43,8 @@ import itertools
 import os
 import warnings
 
-from clonefinder.file_hash import md5sum
-from clonefinder.database import get_default_db_path, print_db, clear_db
+from pydfm.file_hash import md5sum
+from pydfm.database import get_default_db_path, print_db, clear_db
 
 LIKENESS_THRESHOLD = 0
 
@@ -93,16 +93,16 @@ def run(root_paths, db_path=None):
     # DISPLAY DUPLICATED FILES AND DIRECTORIES ################################
 
     # DIRECTORIES
-    num_cloned_dir = len(reversed_dir_dict)
-    if num_cloned_dir > 0:
-        suffix = "Y" if num_cloned_dir == 1 else "IES"
-        print("*** {0} CLONED DIRECTOR{1} ***\n".format(num_cloned_dir, suffix))
+    num_duplicated_dirs = len(reversed_dir_dict)
+    if num_duplicated_dirs > 0:
+        suffix = "Y" if num_duplicated_dirs == 1 else "IES"
+        print("*** {0} DUPLICATED DIRECTOR{1} ***\n".format(num_duplicated_dirs, suffix))
         for md5, paths in list(reversed_dir_dict.items()):
             for path in paths:
                 print(path)
             print()
     else:
-        print("*** NO CLONED DIRECTORY ***\n")
+        print("*** NO DUPLICATED DIRECTORY ***\n")
 
     # DIRECTORIES LIKENESS
     directory_likeness_list = [item for item in list(directory_likeness_dict.items()) if LIKENESS_THRESHOLD < item[1] < 100]
@@ -118,16 +118,16 @@ def run(root_paths, db_path=None):
             print()
 
     # FILES
-    num_cloned_files = len(reversed_file_dict)
-    if num_cloned_files > 0:
-        suffix = "" if num_cloned_files == 1 else "S"
-        print("*** {0} CLONED FILE{1} ***\n".format(num_cloned_files, suffix))
+    num_duplicated_files = len(reversed_file_dict)
+    if num_duplicated_files > 0:
+        suffix = "" if num_duplicated_files == 1 else "S"
+        print("*** {0} DUPLICATED FILE{1} ***\n".format(num_duplicated_files, suffix))
         for md5, paths in list(reversed_file_dict.items()):
             for path in paths:
                 print(path)
             print()
     else:
-        print("*** NO CLONED FILE ***\n")
+        print("*** NO DUPLICATED FILE ***\n")
 
 
 # TOOLS
@@ -150,11 +150,12 @@ def reverse_dictionary(dictionary):
 
 
 def remove_unique_items(reversed_dict):
-    """Remove non-cloned items in the reversed dictionary given in argument."""
+    """Remove non-duplicated items in the reversed dictionary given in
+    argument."""
 
-    clone_reversed_dict = {md5: paths for md5, paths in list(reversed_dict.items()) if len(paths) > 1}
+    duplicate_reversed_dict = {md5: paths for md5, paths in list(reversed_dict.items()) if len(paths) > 1}
 
-    return clone_reversed_dict
+    return duplicate_reversed_dict
 
 
 def remove_redundant_entries(reversed_dict, dir_dict):

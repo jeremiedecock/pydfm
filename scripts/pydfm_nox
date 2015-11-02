@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Clonefinder
+# PyDuplicateFileManager
 
 # The MIT License
 #
@@ -26,7 +26,7 @@
 # THE SOFTWARE.
 
 """
-The clonefinder launch script (without GUI).
+The Duplicate File Manager launch script (without GUI).
 """
 
 __all__ = ['main']
@@ -36,9 +36,9 @@ import os
 import sys
 import warnings
 
-from clonefinder import __version__ as VERSION
+from pydfm import __version__ as VERSION
 
-import clonefinder.core as cf
+import pydfm.core as dfm
 
 
 PROG_DESCRIPTION = 'Find duplicated files and directories.'
@@ -51,7 +51,7 @@ def custom_formatwarning(message, category, filename, lineno, line=""):
 
 
 def main():
-    """Parse the program options and launch clonefinder."""
+    """Parse the program options and launch the Duplicate File Manager."""
 
     warnings.formatwarning = custom_formatwarning
 
@@ -96,7 +96,7 @@ def main():
         pass
     else:
         if args.db is None:
-            db_path = cf.get_default_db_path()
+            db_path = dfm.get_default_db_path()
         else:
             db_path = args.db
             if not os.path.isfile(db_path):
@@ -104,13 +104,13 @@ def main():
 
     # PRINT_DB AND EXIT IF REQUESTED
     if args.printdb:
-        cf.print_db(db_path)
+        dfm.print_db(db_path)
         sys.exit(0)
 
     # CLEAR_DB AND EXIT IF REQUESTED
     if args.cleardb:
         # TODO: simply remove the file, it's much faster...
-        cf.clear_db(db_path)
+        dfm.clear_db(db_path)
         sys.exit(0)
 
     # CHECK ROOT_PATHS
@@ -121,8 +121,8 @@ def main():
     print("Using", db_path, "database")
     print()
 
-    # RUN CLONEFINDER
-    cf.run(args.root_paths, db_path)
+    # RUN THE DUPLICATE FILE MANAGER
+    dfm.run(args.root_paths, db_path)
 
 if __name__ == '__main__':
     main()

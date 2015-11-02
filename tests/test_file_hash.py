@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Clonefinder
+# PyDuplicateFileManager
 
 # The MIT License
 #
@@ -30,7 +30,7 @@ This module contains some unit tests for the file hashes utility functions
 implemented in the "file_hash" module.
 """
 
-from clonefinder import file_hash
+from pydfm import file_hash
 
 import os.path
 import unittest

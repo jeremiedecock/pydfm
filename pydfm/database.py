@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Clonefinder
+# PyDuplicateFileManager
 
 # The MIT License
 #
@@ -42,7 +42,7 @@ def get_default_db_path():
 
     # A cross-platform way to get the current user's home directory
     home_dir = os.path.expanduser("~")
-    default_db_filename = ".clonefinder"
+    default_db_filename = ".pydfm"
     db_path = os.path.join(home_dir, default_db_filename)
 
     return db_path

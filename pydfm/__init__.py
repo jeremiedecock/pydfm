@@ -1,4 +1,4 @@
-# Clonefinder
+# PyDuplicateFileManager
 
 # The MIT License
 #
