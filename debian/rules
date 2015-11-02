@@ -32,8 +32,9 @@ install: build
 	dh_testroot
 	dh_clean -k 
 	dh_installdirs
-	mkdir -p $(CURDIR)/debian/clonefinder/usr/bin
-	cp -a $(CURDIR)/src/clonefinder.py $(CURDIR)/debian/clonefinder/usr/bin/clonefinder
+	mkdir -p $(CURDIR)/debian/pydfm/usr/bin
+#	cp -a $(CURDIR)/pydfm $(CURDIR)/debian/pydfm/usr/.../
+	cp -a $(CURDIR)/scripts/pydfm_nox $(CURDIR)/debian/pydfm/usr/bin/pydfm_nox
 
 # Build architecture-independent files here.
 binary-indep: build install
