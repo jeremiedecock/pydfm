@@ -38,6 +38,8 @@
 # Dev branch marker is: 'X.Y.dev' or 'X.Y.devN' where N is an integer.
 # 'X.Y.dev0' is the canonical version of 'X.Y.dev'
 #
-__version__ = '3.0.dev1'
+__version__ = '3.0.dev2'
 
-__all__ = ['core']
+__all__ = ['core', 
+           'database',
+           'file_hash']
