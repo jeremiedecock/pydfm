@@ -9,7 +9,7 @@ Copyright (c) 2010,2011,2015 Jérémie DECOCK (http://www.jdhp.org)
 * Online documentation: http://pydfm.readthedocs.org
 * Source code: https://github.com/jeremiedecock/pydfm
 * Issue tracker: https://github.com/jeremiedecock/pydfm/issues
-* PyDFM on PyPI: https://pypi.python.org/pypi/pydfm
+* PyDuplicateFileManager on PyPI: https://pypi.python.org/pypi/pydfm
 
 Note:
 
@@ -19,7 +19,7 @@ Note:
 Description
 ===========
 
-Finds duplicated files and directories.
+PyDuplicateFileManager finds duplicated files and directories.
 
 PyDuplicateFileManager is written in Python and released under the MIT license.
 
@@ -27,7 +27,8 @@ PyDuplicateFileManager is written in Python and released under the MIT license.
 Dependencies
 ============
 
-PyDFM is tested to work with Python 3.4 under Gnu/Linux Debian 8 and Windows 7.
+PyDuplicateFileManager is tested to work with Python 3.4 under Gnu/Linux Debian
+8 and Windows 7.
 It should also work with Python 3.X under recent Gnu/Linux and Windows systems.
 It hasn't been tested (yet) on MacOSX and BSD systems.
 
@@ -40,14 +41,14 @@ Installation
 Gnu/Linux
 ---------
 
-You can install, upgrade, uninstall PyDFM with these commands (in a
-terminal)::
+You can install, upgrade, uninstall PyDuplicateFileManager with these commands
+(in a terminal)::
 
     pip install --pre pydfm
     pip install --upgrade pydfm
     pip uninstall pydfm
 
-Or, if you have downloaded the PyDFM source code::
+Or, if you have downloaded the PyDuplicateFileManager source code::
 
     python3 setup.py install
 
@@ -64,14 +65,14 @@ Note:
     3.4 under Windows 7.
     It should also work with recent Windows systems.
 
-You can install, upgrade, uninstall PyDFM with these commands (in a
-`command prompt`_)::
+You can install, upgrade, uninstall PyDuplicateFileManager with these commands
+(in a `command prompt`_)::
 
     py -m pip install --pre pydfm
     py -m pip install --upgrade pydfm
     py -m pip uninstall pydfm
 
-Or, if you have downloaded the PyDFM source code::
+Or, if you have downloaded the PyDuplicateFileManager source code::
 
     py setup.py install
 
@@ -84,14 +85,14 @@ Or, if you have downloaded the PyDFM source code::
 ..     3.4 under MacOSX 10.6 (*Snow Leopard*).
 ..     It should also work with recent MacOSX systems.
 .. 
-.. You can install, upgrade, uninstall PyDFM with these commands (in a
-.. terminal)::
+.. You can install, upgrade, uninstall PyDuplicateFileManager with these
+.. commands (in a terminal)::
 .. 
 ..     pip install --pre pydfm
 ..     pip install --upgrade pydfm
 ..     pip uninstall pydfm
 .. 
-.. Or, if you have downloaded the PyDFM source code::
+.. Or, if you have downloaded the PyDuplicateFileManager source code::
 .. 
 ..     python3 setup.py install
 
@@ -99,7 +100,7 @@ Or, if you have downloaded the PyDFM source code::
 Documentation
 =============
 
-.. PyDFM documentation is available on the following page:
+.. PyDuplicateFileManager documentation is available on the following page:
 .. 
 ..     http://pydfm.rtfd.org/
 
@@ -116,7 +117,8 @@ TODO...
 Bug reports
 ===========
 
-To search for bugs or report them, please use the PyDFM Bug Tracker at:
+To search for bugs or report them, please use the PyDuplicateFileManager Bug
+Tracker at:
 
     https://github.com/jeremiedecock/pydfm/issues
 
@@ -124,7 +126,8 @@ To search for bugs or report them, please use the PyDFM Bug Tracker at:
 License
 =======
 
-PyDuplicateFileManager is provided under the terms and conditions of the `MIT License`.
+PyDuplicateFileManager is provided under the terms and conditions of the
+`MIT License`.
 
 .. _PyDuplicateFileManager: http://www.jdhp.org/projects_en.html#pydfm
 .. _MIT License: http://opensource.org/licenses/MIT
