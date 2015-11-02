@@ -2,13 +2,15 @@
 
 ## Version 3.0
 
-- [ ] Update the README file: explain the main features, explain how it works (use tree pictures, ...),
-      explain why the clone search is not "trivial" at all (md5 not filename, minimal
-      list, likelyhood similitudes, ...), ...
+- [ ] Update the README file: explain the main features, explain how it works
+      (use tree pictures, ...), explain why the duplicate file search is not
+      "trivial" at all (md5 not filename, minimal list, likelyhood similitudes,
+      ...), ...
 - [ ] Clean, add docstrings, test, ...
 - [ ] Add a setup.py file
 - [ ] Create a Debian package
-- [ ] Let it work on Windows platforms + add installation instructions for windows in the README file
+- [ ] Let it work on Windows platforms + add installation instructions for
+      Windows in the README file
 
 ## Version 3.1
 
