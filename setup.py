@@ -65,7 +65,7 @@ PACKAGES = ['pydfm']
 INSTALL_REQUIRES = []
 
 
-SCRIPTS = ['scripts/pydfm-nox']
+SCRIPTS = ['scripts/pydfm-nox', 'scripts/pydfm']
 
 
 # Entry point can be used to create plugins or to automatically generate
