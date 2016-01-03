@@ -2,7 +2,7 @@
 PyDuplicateFileManager_
 =======================
 
-Copyright (c) 2010,2011,2015 Jérémie DECOCK (http://www.jdhp.org)
+Copyright (c) 2010,2011,2015,2016 Jérémie DECOCK (http://www.jdhp.org)
 
 
 * Web site: http://www.jdhp.org/projects_en.html#pydfm
