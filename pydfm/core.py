@@ -50,6 +50,8 @@ LIKENESS_THRESHOLD = 0
 
 def run(root_paths, db_path=None):
 
+    # TODO: move the content of this function in the main GUI / TUI function
+
     # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
 
     # file_dict = {filepath: md5, filepath: md5, ...}
@@ -332,38 +334,38 @@ def report(reversed_file_dict, reversed_dir_dict, directory_likeness_dict):
     num_duplicated_dirs = len(reversed_dir_dict)
     if num_duplicated_dirs > 0:
         suffix = "Y" if num_duplicated_dirs == 1 else "IES"
-        print("*** {0} DUPLICATED DIRECTOR{1} ***\n".format(num_duplicated_dirs, suffix))
+        report_str += "*** {0} DUPLICATED DIRECTOR{1} ***\n\n".format(num_duplicated_dirs, suffix)
         for md5, paths in list(reversed_dir_dict.items()):
             for path in paths:
-                print(path)
-            print()
+                report_str += path + "\n"
+            report_str += "\n"
     else:
-        print("*** NO DUPLICATED DIRECTORY ***\n")
+        report_str += "*** NO DUPLICATED DIRECTORY ***\n\n"
 
     # DIRECTORIES LIKENESS
     directory_likeness_list = [item for item in list(directory_likeness_dict.items()) if LIKENESS_THRESHOLD < item[1] < 100]
     directory_likeness_list.sort(key=lambda x: x[1], reverse=True)
     if len(directory_likeness_list) > 0:
-        print("*** DIRECTORIES LIKENESS ***")
-        print()
+        report_str += "*** DIRECTORIES LIKENESS ***\n"
+        report_str += "\n"
         for path_pair, likeness in directory_likeness_list:
             assert len(path_pair) == 2
-            print("{0}%".format(likeness))
-            print(path_pair[0])
-            print(path_pair[1])
-            print()
+            report_str += "{0}%\n".format(likeness)
+            report_str += path_pair[0] + "\n"
+            report_str += path_pair[1] + "\n"
+            report_str += "\n"
 
     # FILES
     num_duplicated_files = len(reversed_file_dict)
     if num_duplicated_files > 0:
         suffix = "" if num_duplicated_files == 1 else "S"
-        print("*** {0} DUPLICATED FILE{1} ***\n".format(num_duplicated_files, suffix))
+        report_str += "*** {0} DUPLICATED FILE{1} ***\n\n".format(num_duplicated_files, suffix)
         for md5, paths in list(reversed_file_dict.items()):
             for path in paths:
-                print(path)
-            print()
+                report_str += path + "\n"
+            report_str += "\n"
     else:
-        print("*** NO DUPLICATED FILE ***\n")
+        report_str += "*** NO DUPLICATED FILE ***\n\n"
 
     return report_str
 
