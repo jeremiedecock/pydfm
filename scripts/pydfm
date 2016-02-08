@@ -45,7 +45,7 @@ import pydfm.core as dfm
 
 # Inspired by http://tkinter.unpythonic.net/wiki/tkFileDialog
 
-class TkPyFDM(tk.Frame):
+class FrameSelect(tk.Frame):
 
     def __init__(self, root):
 
@@ -135,7 +135,7 @@ def main():
     root = tk.Tk()
     root.title("PyDFM")
 
-    TkPyFDM(root).pack()
+    FrameSelect(root).pack()
     root.mainloop()
 
 
