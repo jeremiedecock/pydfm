@@ -27,30 +27,8 @@
 
 """
 The Duplicate File Manager core module.
-"""
 
-__all__ = ['run',
-           'reverse_dictionary',
-           'remove_unique_items',
-           'remove_redundant_entries',
-           'compute_directory_likeness',
-           'walk']
-
-import collections
-import dbm.dumb      # TODO
-import hashlib       # TODO
-import itertools
-import os
-import warnings
-
-from pydfm.file_hash import md5sum
-from pydfm.database import get_default_db_path, print_db, clear_db
-
-LIKENESS_THRESHOLD = 0
-
-def run(root_paths, db_path=None):
-
-    # TODO: move the content of this function in the main GUI / TUI function
+Here is an example of pydfm.core usage:
 
     # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
 
@@ -83,9 +61,30 @@ def run(root_paths, db_path=None):
     # DISPLAY DUPLICATED FILES AND DIRECTORIES ################################
 
     print(report(reversed_file_dict, reversed_dir_dict, directory_likeness_dict))
+"""
 
+__all__ = ['number_of_files',
+           'build_path_dictionary',
+           'reverse_dictionary',
+           'remove_unique_items',
+           'remove_redundant_entries',
+           'compute_directory_likeness',
+           'report',
+           'walk']
 
-# TOOLS
+import collections
+import dbm.dumb      # TODO
+import hashlib       # TODO
+import itertools
+import os
+import warnings
+
+from pydfm.file_hash import md5sum
+from pydfm.database import get_default_db_path, print_db, clear_db
+
+LIKENESS_THRESHOLD = 0
+
+# TOOLS #######################################################################
 
 def number_of_files(root_paths):
     """Return the number of files recursively found in root_paths."""
