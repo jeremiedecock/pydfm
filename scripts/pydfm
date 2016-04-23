@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# PyDuplicateFileManager
+
+# The MIT License
+#
+# Copyright (c) 2010,2011,2012,2013,2015,2016 Jeremie DECOCK (http://www.jdhp.org)
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+"""
+The Duplicate File Manager launch script (using Tkinter GUI).
+"""
+
+__all__ = ['main']
+
+import os
+
+import tkinter as tk
+import tkinter.filedialog
+
+from pydfm import __version__ as VERSION
+
+import pydfm.core as dfm
+
+
+# GUI DEFINITION ##########################################################
+
+# Inspired by http://tkinter.unpythonic.net/wiki/tkFileDialog
+
+class FrameSelect(tk.Frame):
+
+    def __init__(self, root):
+
+        tk.Frame.__init__(self, root)
+
+        self.entry = tk.Entry(root, width=80)
+        self.entry.pack(side=tk.LEFT)
+
+        # Define buttons
+        self.open_button = tk.Button(self, text="Select", command=self.select_directory)
+        self.open_button.pack(side=tk.LEFT)
+
+        self.print_button = tk.Button(self, text="Analyze", command=self.analyze_directory)
+        self.print_button.pack(side=tk.RIGHT)
+
+        # Defining options for opening a directory
+        self.dir_opt = {}
+        self.dir_opt['initialdir'] = os.path.expanduser("~")
+        self.dir_opt['mustexist'] = True
+        self.dir_opt['parent'] = root
+        self.dir_opt['title'] = 'Select a directory'
+
+    def select_directory(self):
+
+        path = tk.filedialog.askdirectory(**self.dir_opt)
+        if path is not None:
+            self.entry.delete(0, tk.END)
+            self.entry.insert(0, path)
+
+    def analyze_directory(self):
+
+        # SET ROOT_PATH
+        path = self.entry.get()
+        root_paths = [path]           # TODO
+
+        # SET DB_PATH
+        db_path = None                # TODO
+
+        # CHECK ROOT_PATHS
+        if not os.path.isdir(path):
+            raise Exception("{0} is not a directory.".format(path))
+
+        # PRINT SOME INFORMATION ##################################################
+
+        print("Number of files to analize:", dfm.number_of_files(root_paths))
+
+        ###########################################################################
+        # ANALYZE FILES                                                           #
+        ###########################################################################
+
+        # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
+
+        # file_dict = {filepath: md5, filepath: md5, ...}
+        # dir_dict = {dirpath: md5, dirpath: md5, ...}
+        file_dict, dir_dict = dfm.build_path_dictionary(root_paths, db_path)
+
+        # BUILD REVERSE DICTIONNARY ###############################################
+
+        # reverse_dict = {md5: [path1, path2, ...], ...}
+        reversed_file_dict = dfm.reverse_dictionary(file_dict)
+        reversed_dir_dict = dfm.reverse_dictionary(dir_dict)
+
+        # REMOVE UNIQUE ITEMS #####################################################
+
+        reversed_file_dict = dfm.remove_unique_items(reversed_file_dict)
+        reversed_dir_dict = dfm.remove_unique_items(reversed_dir_dict)
+
+        # REMOVE REDUNDANT ENTRIES ################################################
+
+        dfm.remove_redundant_entries(reversed_file_dict, dir_dict)
+        dfm.remove_redundant_entries(reversed_dir_dict, dir_dict)
+
+        # COMPUTE DIRECTORY LIKENESS ##############################################
+
+        directory_likeness_dict = dfm.compute_directory_likeness(reversed_file_dict,
+                                                                 file_dict,
+                                                                 dir_dict)
+
+        # DISPLAY DUPLICATED FILES AND DIRECTORIES ################################
+
+        print(dfm.report(reversed_file_dict, reversed_dir_dict, directory_likeness_dict))
+
+
+def main():
+    """Parse the program options and launch the Duplicate File Manager."""
+
+    root = tk.Tk()
+    root.title("PyDFM")
+
+    FrameSelect(root).pack()
+    root.mainloop()
+
+
+if __name__ == '__main__':
+    main()
+

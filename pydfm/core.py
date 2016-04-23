@@ -27,46 +27,14 @@
 
 """
 The Duplicate File Manager core module.
-"""
 
-__all__ = ['run',
-           'reverse_dictionary',
-           'remove_unique_items',
-           'remove_redundant_entries',
-           'compute_directory_likeness',
-           'walk']
-
-import collections
-import dbm.dumb      # TODO
-import hashlib       # TODO
-import itertools
-import os
-import warnings
-
-from pydfm.file_hash import md5sum
-from pydfm.database import get_default_db_path, print_db, clear_db
-
-LIKENESS_THRESHOLD = 0
-
-def run(root_paths, db_path=None):
+Here is an example of pydfm.core usage:
 
     # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #########################
 
-    file_dict = {}   # dict = {path: md5, ...}
-    dir_dict = {}    # dict = {path: md5, ...}
-
-    db = None
-    if db_path is not None:
-        db = dbm.dumb.open(db_path, 'c')
-
-    # For each root path specified in command line argmuents
-    for path in root_paths:
-        local_file_dict, local_dir_dict = walk(path, db)
-        file_dict.update(local_file_dict)
-        dir_dict.update(local_dir_dict)
-
-    if db_path is not None:
-        db.close()
+    # file_dict = {filepath: md5, filepath: md5, ...}
+    # dir_dict = {dirpath: md5, dirpath: md5, ...}
+    file_dict, dir_dict = build_path_dictionary(root_paths, db_path)
 
     # BUILD REVERSE DICTIONNARY ###############################################
 
@@ -92,45 +60,69 @@ def run(root_paths, db_path=None):
 
     # DISPLAY DUPLICATED FILES AND DIRECTORIES ################################
 
-    # DIRECTORIES
-    num_duplicated_dirs = len(reversed_dir_dict)
-    if num_duplicated_dirs > 0:
-        suffix = "Y" if num_duplicated_dirs == 1 else "IES"
-        print("*** {0} DUPLICATED DIRECTOR{1} ***\n".format(num_duplicated_dirs, suffix))
-        for md5, paths in list(reversed_dir_dict.items()):
-            for path in paths:
-                print(path)
-            print()
-    else:
-        print("*** NO DUPLICATED DIRECTORY ***\n")
+    print(report(reversed_file_dict, reversed_dir_dict, directory_likeness_dict))
+"""
 
-    # DIRECTORIES LIKENESS
-    directory_likeness_list = [item for item in list(directory_likeness_dict.items()) if LIKENESS_THRESHOLD < item[1] < 100]
-    directory_likeness_list.sort(key=lambda x: x[1], reverse=True)
-    if len(directory_likeness_list) > 0:
-        print("*** DIRECTORIES LIKENESS ***")
-        print()
-        for path_pair, likeness in directory_likeness_list:
-            assert len(path_pair) == 2
-            print("{0}%".format(likeness))
-            print(path_pair[0])
-            print(path_pair[1])
-            print()
+__all__ = ['number_of_files',
+           'build_path_dictionary',
+           'reverse_dictionary',
+           'remove_unique_items',
+           'remove_redundant_entries',
+           'compute_directory_likeness',
+           'report',
+           'walk']
 
-    # FILES
-    num_duplicated_files = len(reversed_file_dict)
-    if num_duplicated_files > 0:
-        suffix = "" if num_duplicated_files == 1 else "S"
-        print("*** {0} DUPLICATED FILE{1} ***\n".format(num_duplicated_files, suffix))
-        for md5, paths in list(reversed_file_dict.items()):
-            for path in paths:
-                print(path)
-            print()
-    else:
-        print("*** NO DUPLICATED FILE ***\n")
+import collections
+import dbm.dumb      # TODO
+import hashlib       # TODO
+import itertools
+import os
+import warnings
 
+from pydfm.file_hash import md5sum
+from pydfm.database import get_default_db_path, print_db, clear_db
 
-# TOOLS
+LIKENESS_THRESHOLD = 0
+
+# TOOLS #######################################################################
+
+def number_of_files(root_paths):
+    """Return the number of files recursively found in root_paths."""
+
+    number_of_files = 0
+
+    # For each root path specified in command line argmuents
+    for path in root_paths:
+        for cur_dir, dir_seq, file_seq in os.walk(path):
+            number_of_files += len(file_seq)
+
+    return number_of_files
+
+def build_path_dictionary(root_paths, db_path=None):
+    """Return dictionaries of all files and directories recursively found
+    in root_paths, using path of files (or directories) as key and their
+    hashs (MD5, SHA, ...) as value.
+    
+    Build two dictionaries are returned: one for files and the other for
+    directories."""
+
+    file_dict = {}   # dict = {path: md5, ...}
+    dir_dict = {}    # dict = {path: md5, ...}
+
+    db = None
+    if db_path is not None:
+        db = dbm.dumb.open(db_path, 'c')
+
+    # For each root path specified in command line argmuents
+    for path in root_paths:
+        local_file_dict, local_dir_dict = walk(path, db)
+        file_dict.update(local_file_dict)
+        dir_dict.update(local_dir_dict)
+
+    if db_path is not None:
+        db.close()
+
+    return file_dict, dir_dict
 
 def reverse_dictionary(dictionary):
     """Build a reversed dictionary of the one given in argument
@@ -330,6 +322,51 @@ def compute_directory_likeness(reversed_file_dict, file_dict, dir_dict):
         directory_likeness_dict[path_pair] = likeness
 
     return directory_likeness_dict
+
+
+def report(reversed_file_dict, reversed_dir_dict, directory_likeness_dict):
+    """Return a human readable report text."""
+
+    report_str = ""
+
+    # DIRECTORIES
+    num_duplicated_dirs = len(reversed_dir_dict)
+    if num_duplicated_dirs > 0:
+        suffix = "Y" if num_duplicated_dirs == 1 else "IES"
+        report_str += "*** {0} DUPLICATED DIRECTOR{1} ***\n\n".format(num_duplicated_dirs, suffix)
+        for md5, paths in list(reversed_dir_dict.items()):
+            for path in paths:
+                report_str += path + "\n"
+            report_str += "\n"
+    else:
+        report_str += "*** NO DUPLICATED DIRECTORY ***\n\n"
+
+    # DIRECTORIES LIKENESS
+    directory_likeness_list = [item for item in list(directory_likeness_dict.items()) if LIKENESS_THRESHOLD < item[1] < 100]
+    directory_likeness_list.sort(key=lambda x: x[1], reverse=True)
+    if len(directory_likeness_list) > 0:
+        report_str += "*** DIRECTORIES LIKENESS ***\n"
+        report_str += "\n"
+        for path_pair, likeness in directory_likeness_list:
+            assert len(path_pair) == 2
+            report_str += "{0}%\n".format(likeness)
+            report_str += path_pair[0] + "\n"
+            report_str += path_pair[1] + "\n"
+            report_str += "\n"
+
+    # FILES
+    num_duplicated_files = len(reversed_file_dict)
+    if num_duplicated_files > 0:
+        suffix = "" if num_duplicated_files == 1 else "S"
+        report_str += "*** {0} DUPLICATED FILE{1} ***\n\n".format(num_duplicated_files, suffix)
+        for md5, paths in list(reversed_file_dict.items()):
+            for path in paths:
+                report_str += path + "\n"
+            report_str += "\n"
+    else:
+        report_str += "*** NO DUPLICATED FILE ***\n\n"
+
+    return report_str
 
 
 # BUILD {PATH:MD5,...} DICTIONARY (WALK THE TREE) #############################

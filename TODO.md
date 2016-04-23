@@ -8,9 +8,14 @@
       ...), ...
 - [ ] Clean, add docstrings, test, ...
 - [ ] Add a setup.py file
+- [ ] Introduce a special consideration for empty files : remove them from the
+      "cloned files list" and display them in an "empty files list"
 - [ ] Create a Debian package
 - [ ] Let it work on Windows platforms + add installation instructions for
       Windows in the README file
+- [ ] How to manage unreadable ("chmod a-r") files or directories ? Two identical
+      directories containing at least one unreadable file should be considered as
+      cloned anyway or not (or should require a special display in the report) ?
 
 ## Version 3.1
 
